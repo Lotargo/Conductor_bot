@@ -1,24 +1,28 @@
 import json
 import sys
 import os
+import logging
 
-# Adjust path to import from parent directory
+# Настройка пути для импорта
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from conductor.shared.mocks import MockKafkaConsumer, MockKafkaProducer, MockMagicProxy
 from conductor.config import KAFKA_TOPIC_DECISIONS, KAFKA_TOPIC_ACTIONS
 
+# Получаем экземпляр логгера
+logger = logging.getLogger(__name__)
+
 def run_decision_engine():
     """
-    Main loop for the decision engine. Consumes decision requests from Kafka,
-    uses the Magic Proxy to make a decision, and sends the resulting action
-    to the execution topic.
+    Основной цикл для механизма принятия решений. Потребляет запросы из Kafka,
+    использует Magic Proxy для принятия решения и отправляет результирующее
+    действие в топик для исполнения.
     """
     consumer = MockKafkaConsumer(KAFKA_TOPIC_DECISIONS)
     producer = MockKafkaProducer()
     magic_proxy = MockMagicProxy()
 
-    print("DECISION_ENGINE: Starting...")
+    logger.info("Запуск Decision Engine...")
     for message in consumer:
         try:
             request_data = json.loads(message.value)
@@ -28,31 +32,33 @@ def run_decision_engine():
             screenshots = request_data.get("screenshots")
 
             if not all([chat_id, persona_manifest, rag_context, screenshots is not None]):
-                print("DECISION_ENGINE: ERROR - Incomplete decision request, skipping.")
+                logger.warning("Получен неполный запрос на принятие решения, пропускаю.")
                 continue
 
-            print(f"DECISION_ENGINE: Processing decision request for chat_id: {chat_id}")
+            logger.info(f"Обработка запроса на принятие решения для chat_id: {chat_id}")
 
-            # Get decision from the Magic Proxy
+            # Получаем решение от Magic Proxy
             action_command = magic_proxy.decide(
                 persona_manifest=persona_manifest,
                 rag_context=rag_context,
                 screenshots=screenshots
             )
 
-            # Add chat_id to the final command
+            # Добавляем chat_id в итоговую команду
             action_command["chat_id"] = chat_id
 
-            # Send the command to the execution topic
+            # Отправляем команду в топик для исполнения
             producer.send(KAFKA_TOPIC_ACTIONS, value=json.dumps(action_command))
             producer.flush()
 
-            print(f"DECISION_ENGINE: Sent action command for chat_id: {chat_id} to Kafka.")
+            logger.info(f"Команда на исполнение для chat_id: {chat_id} отправлена в Kafka.")
 
         except json.JSONDecodeError:
-            print("DECISION_ENGINE: ERROR - Could not decode message value.")
+            logger.error("Не удалось декодировать сообщение из Kafka.", exc_info=True)
         except Exception as e:
-            print(f"DECISION_ENGINE: ERROR - An unexpected error occurred: {e}")
+            logger.error(f"Произошла непредвиденная ошибка в Decision Engine: {e}", exc_info=True)
 
 if __name__ == "__main__":
-    print("Decision Engine module is ready.")
+    # Этот блок теперь в основном для отладки
+    setup_logging()
+    logger.info("Модуль Decision Engine готов к запуску.")

@@ -3,3 +3,4 @@ uvicorn[standard]
 playwright
 kafka-python
 google-generativeai
+python-json-logger

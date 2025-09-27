@@ -4,8 +4,9 @@ from collections import defaultdict
 import threading
 import sys
 import os
+import logging
 
-# Adjust path to import from parent directory
+# Настройка пути для импорта
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from conductor.shared.mocks import MockKafkaConsumer, MockKafkaProducer, MockRAGDatabase
@@ -15,27 +16,29 @@ from conductor.config import (
     ORCHESTRATOR_TIMEOUT
 )
 
-# In-memory storage for active timers and collected screenshots
+# Получаем экземпляр логгера
+logger = logging.getLogger(__name__)
+
+# Хранилище в памяти для активных таймеров и собранных скриншотов
 ACTIVE_TIMERS = {}
 SCREENSHOT_BUFFER = defaultdict(list)
 
-# Instantiate mock components
+# Инициализация мок-компонентов
 producer = MockKafkaProducer()
 rag_db = MockRAGDatabase()
 
 def load_persona_manifest(persona_name: str = "corporate_assistant"):
-    """Loads a persona manifest from the personas directory."""
+    """Загружает манифест персоны из директории personas."""
     current_dir = os.path.dirname(__file__)
-    # Correctly navigate to the 'conductor' directory and then to 'personas'
     personas_dir = os.path.abspath(os.path.join(current_dir, '..', 'personas'))
     manifest_path = os.path.join(personas_dir, f"{persona_name}.json")
 
-    print(f"ORCHESTRATOR: Loading persona manifest from {manifest_path}")
+    logger.info(f"Загрузка манифеста персоны из {manifest_path}")
     try:
         with open(manifest_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"ORCHESTRATOR: ERROR - Persona manifest not found at {manifest_path}")
+        logger.error(f"Манифест персоны не найден по пути: {manifest_path}")
         return {
           "persona_name": "Default",
           "system_prompt": "You are a helpful assistant.",
@@ -44,64 +47,71 @@ def load_persona_manifest(persona_name: str = "corporate_assistant"):
 
 def process_timeout(chat_id: str):
     """
-    This function is called when the timer for a chat_id expires.
-    It collects data, creates a task, and sends it to the decision engine.
+    Эта функция вызывается по истечении таймера для chat_id.
+    Она собирает данные, создает задачу и отправляет ее в decision engine.
     """
-    print(f"ORCHESTRATOR: Timeout for chat_id: {chat_id}. Processing...")
+    logger.info(f"Тайм-аут для chat_id: {chat_id}. Начинаю обработку...")
 
     screenshots_data = SCREENSHOT_BUFFER.pop(chat_id, [])
     if not screenshots_data:
-        print(f"ORCHESTRATOR: No screenshots to process for chat_id: {chat_id}.")
+        logger.warning(f"Нет скриншотов для обработки для chat_id: {chat_id}.")
         ACTIVE_TIMERS.pop(chat_id, None)
         return
 
-    screenshots_base64 = [msg["screenshot_base64"] for msg in screenshots_data]
-    persona_manifest = load_persona_manifest()
-    rag_context = rag_db.get_history(chat_id)
+    try:
+        screenshots_base64 = [msg["screenshot_base64"] for msg in screenshots_data]
+        persona_manifest = load_persona_manifest()
+        rag_context = rag_db.get_history(chat_id)
 
-    decision_request = {
-        "chat_id": chat_id,
-        "persona_manifest": persona_manifest,
-        "rag_context": rag_context,
-        "screenshots": screenshots_base64
-    }
+        decision_request = {
+            "chat_id": chat_id,
+            "persona_manifest": persona_manifest,
+            "rag_context": rag_context,
+            "screenshots": screenshots_base64
+        }
 
-    producer.send(KAFKA_TOPIC_DECISIONS, value=json.dumps(decision_request))
-    producer.flush()
-    print(f"ORCHESTRATOR: Sent decision request for chat_id: {chat_id} to Kafka.")
+        producer.send(KAFKA_TOPIC_DECISIONS, value=json.dumps(decision_request))
+        producer.flush()
+        logger.info(f"Запрос на принятие решения для chat_id: {chat_id} отправлен в Kafka.")
 
-    ACTIVE_TIMERS.pop(chat_id, None)
+    except Exception as e:
+        logger.error(f"Ошибка при обработке тайм-аута для chat_id {chat_id}: {e}", exc_info=True)
+    finally:
+        ACTIVE_TIMERS.pop(chat_id, None)
 
 def run_orchestrator():
     """
-    Main loop for the orchestrator. Consumes messages from Kafka
-    and manages timers for processing.
+    Основной цикл оркестратора. Потребляет сообщения из Kafka
+    и управляет таймерами для обработки.
     """
     consumer = MockKafkaConsumer(KAFKA_TOPIC_NOTIFICATIONS)
-    print("ORCHESTRATOR: Starting...")
+    logger.info("Запуск Orchestrator...")
     for message in consumer:
         try:
             data = json.loads(message.value)
             chat_id = data.get("chat_id")
             if not chat_id:
+                logger.warning("Получено сообщение без chat_id, пропускаю.")
                 continue
 
-            print(f"ORCHESTRATOR: Received notification for chat_id: {chat_id}")
+            logger.info(f"Получено уведомление для chat_id: {chat_id}")
 
             SCREENSHOT_BUFFER[chat_id].append(data)
 
             if chat_id not in ACTIVE_TIMERS:
-                print(f"ORCHESTRATOR: Starting new timer for chat_id: {chat_id}")
+                logger.info(f"Запуск нового таймера для chat_id: {chat_id}")
                 timer = threading.Timer(ORCHESTRATOR_TIMEOUT, process_timeout, args=[chat_id])
                 ACTIVE_TIMERS[chat_id] = timer
                 timer.start()
             else:
-                print(f"ORCHESTRATOR: Timer already active for chat_id: {chat_id}. Buffering screenshot.")
+                logger.info(f"Таймер для chat_id: {chat_id} уже активен. Буферизация скриншота.")
 
         except json.JSONDecodeError:
-            print("ORCHESTRATOR: ERROR - Could not decode message value.")
+            logger.error("Не удалось декодировать сообщение из Kafka.", exc_info=True)
         except Exception as e:
-            print(f"ORCHESTRATOR: ERROR - An unexpected error occurred: {e}")
+            logger.error(f"Произошла непредвиденная ошибка в оркестраторе: {e}", exc_info=True)
 
 if __name__ == "__main__":
-    print("Orchestrator module is ready.")
+    # Этот блок теперь в основном для отладки, т.к. запуск идет из run.py
+    setup_logging()
+    logger.info("Модуль Orchestrator готов к запуску.")
