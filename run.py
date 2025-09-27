@@ -3,27 +3,34 @@ import uvicorn
 import time
 import sys
 import os
+import logging
 
-# Ensure the 'conductor' directory is in the Python path
+# Убедимся, что директория 'conductor' находится в Python path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
+from conductor.logging_config import setup_logging
 from conductor.listener.main import app as fastapi_app
 from conductor.orchestrator.main import run_orchestrator
 from conductor.decision_engine.main import run_decision_engine
 from conductor.executor.main import run_executor
 
+# Настраиваем логирование при старте модуля
+setup_logging()
+logger = logging.getLogger(__name__)
+
 def run_fastapi():
-    """Runs the FastAPI listener app using uvicorn."""
-    print("MAIN_RUNNER: Starting Listener (FastAPI)...")
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=8000, log_level="info")
+    """Запускает FastAPI-приложение listener с помощью uvicorn."""
+    logger.info("Запуск Listener (FastAPI)...")
+    # Уменьшаем уровень детализации логов uvicorn, чтобы не засорять вывод
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=8000, log_level="warning")
 
 def main():
     """
-    Runs all Conductor modules concurrently in separate threads.
+    Запускает все модули Conductor одновременно в отдельных потоках.
     """
-    print("--- Starting Conductor AI Assistant ---")
+    logger.info("--- Запуск Conductor AI Assistant ---")
 
-    # Define the target functions for each module
+    # Определяем целевые функции для каждого модуля
     targets = {
         "listener": run_fastapi,
         "orchestrator": run_orchestrator,
@@ -33,24 +40,27 @@ def main():
 
     threads = []
 
-    # Create and start a thread for each module
+    # Создаем и запускаем поток для каждого модуля
     for name, target_func in targets.items():
         thread = threading.Thread(target=target_func, name=name, daemon=True)
         threads.append(thread)
-        print(f"MAIN_RUNNER: Launching module '{name}' in a new thread.")
+        logger.info(f"Запуск модуля '{name}' в новом потоке.")
         thread.start()
-        time.sleep(1) # Stagger starts to make logs more readable
+        time.sleep(1)  # Небольшая задержка для более читаемых логов
 
-    print("\n--- All modules are running. Press Ctrl+C to stop. ---")
+    logger.info("--- Все модули запущены. Нажмите Ctrl+C для остановки. ---")
     
     try:
-        # Keep the main thread alive to allow daemon threads to run
+        # Поддерживаем главный поток активным, чтобы daemon-потоки могли работать
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n--- Shutting down Conductor AI Assistant ---")
-        # Threads are daemons, so they will exit when the main thread exits.
+        logger.info("--- Завершение работы Conductor AI Assistant ---")
+        # Потоки являются daemon, поэтому они завершатся вместе с главным потоком.
         sys.exit(0)
+    except Exception as e:
+        logger.critical(f"Критическая ошибка в главном потоке: {e}", exc_info=True)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
