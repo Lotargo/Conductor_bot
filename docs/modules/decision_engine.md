@@ -6,43 +6,42 @@
 
 ## Функциональность
 
-Основная задача модуля — принять запрос на решение, обработать его с помощью `MockMagicProxy` (имитатора "магического" AI-компонента) и отправить команду на исполнение в `Executor`.
+Основная задача модуля — принять запрос на решение, обработать его с помощью `MockMagicProxy` (имитатора AI-компонента) и отправить команду на исполнение в `Executor`.
 
 Ключевые операции:
-1.  **Прослушивание Kafka**: Потребляет сообщения из топика `KAFKA_TOPIC_DECISIONS`, куда `Orchestrator` отправляет запросы на принятие решений.
-2.  **Анализ данных**: Извлекает из сообщения `chat_id`, `persona_manifest`, `rag_context` и `screenshots`.
-3.  **Принятие решения**: Передает полученные данные в `MockMagicProxy`. Этот компонент имитирует логику принятия решения и возвращает команду, состоящую из действия (`action`), цели (`target`) и текста (`text`).
-4.  **Формирование команды**: Добавляет `chat_id` к полученной от `MagicProxy` команде, чтобы `Executor` знал, к какому чату относится действие.
+1.  **Прослушивание Kafka**: Потребляет сообщения из топика `KAFKA_TOPIC_DECISIONS`.
+2.  **Анализ данных**: Извлекает из сообщения `chat_id`, **`platform`**, `persona_manifest`, `rag_context` и `screenshots`.
+3.  **Принятие решения**: Передает полученные данные в `MockMagicProxy`, который возвращает команду.
+4.  **Формирование команды**: Добавляет **`chat_id` и `platform`** к команде, чтобы `Executor` знал, где и через какой мессенджер нужно выполнить действие.
 5.  **Отправка команды на исполнение**: Отправляет итоговую команду в топик Kafka `KAFKA_TOPIC_ACTIONS`.
 
 ## Формат входящего сообщения (из Orchestrator)
 
-Сообщения, потребляемые из `KAFKA_TOPIC_DECISIONS`, имеют следующую структуру:
-
 ```json
 {
   "chat_id": "some_unique_chat_id",
+  "platform": "telegram",
   "persona_manifest": { "..._details_..." },
-  "rag_context": [ "..._history_..." ],
+  "rag_context": "...",
   "screenshots": [ "base64_screenshot_1", "..." ]
 }
 ```
 
 ## Формат исходящего сообщения (для Executor)
 
-Сообщения, отправляемые в `KAFKA_TOPIC_ACTIONS`, имеют следующую структуру:
-
 ```json
 {
-  "action": "type_and_send",
-  "target": "message_input_field",
+  "action": "send_message",
+  "target": "@all",
   "text": "Hello! How can I help you today?",
-  "chat_id": "some_unique_chat_id"
+  "chat_id": "some_unique_chat_id",
+  "platform": "telegram"
 }
 ```
 
 **Поля:**
-*   `action` (string): Действие, которое нужно выполнить (например, `type_and_send`).
-*   `target` (string): Элемент интерфейса, с которым нужно взаимодействовать.
-*   `text` (string): Текст для ввода или использования в действии.
-*   `chat_id` (string): Идентификатор чата, в котором выполняется действие.
+*   `action` (string): Действие, которое нужно выполнить.
+*   `target` (string): Цель действия.
+*   `text` (string): Текст для отправки.
+*   `chat_id` (string): Идентификатор чата.
+*   `platform` (string): Платформа для выполнения действия (`whatsapp` или `telegram`).
