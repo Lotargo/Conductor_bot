@@ -27,6 +27,7 @@ def run_decision_engine():
         try:
             request_data = json.loads(message.value)
             chat_id = request_data.get("chat_id")
+            platform = request_data.get("platform", "whatsapp")  # Извлекаем платформу
             persona_manifest = request_data.get("persona_manifest")
             rag_context = request_data.get("rag_context")
             screenshots = request_data.get("screenshots")
@@ -35,7 +36,7 @@ def run_decision_engine():
                 logger.warning("Получен неполный запрос на принятие решения, пропускаю.")
                 continue
 
-            logger.info(f"Обработка запроса на принятие решения для chat_id: {chat_id}")
+            logger.info(f"Обработка запроса на принятие решения для chat_id: {chat_id} (платформа: {platform})")
 
             # Получаем решение от Magic Proxy
             action_command = magic_proxy.decide(
@@ -44,14 +45,15 @@ def run_decision_engine():
                 screenshots=screenshots
             )
 
-            # Добавляем chat_id в итоговую команду
+            # Добавляем chat_id и platform в итоговую команду
             action_command["chat_id"] = chat_id
+            action_command["platform"] = platform
 
             # Отправляем команду в топик для исполнения
             producer.send(KAFKA_TOPIC_ACTIONS, value=json.dumps(action_command))
             producer.flush()
 
-            logger.info(f"Команда на исполнение для chat_id: {chat_id} отправлена в Kafka.")
+            logger.info(f"Команда на исполнение для chat_id: {chat_id} (платформа: {platform}) отправлена в Kafka.")
 
         except json.JSONDecodeError:
             logger.error("Не удалось декодировать сообщение из Kafka.", exc_info=True)
@@ -59,6 +61,9 @@ def run_decision_engine():
             logger.error(f"Произошла непредвиденная ошибка в Decision Engine: {e}", exc_info=True)
 
 if __name__ == "__main__":
-    # Этот блок теперь в основном для отладки
-    setup_logging()
-    logger.info("Модуль Decision Engine готов к запуску.")
+    try:
+        from conductor.logging_config import setup_logging
+        setup_logging()
+    except ImportError:
+        logging.basicConfig(level=logging.INFO)
+    run_decision_engine()
