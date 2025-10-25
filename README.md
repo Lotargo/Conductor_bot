@@ -1,79 +1,127 @@
-# Sentio Engine
+<div align="center">
+  <img src="docs/assets/logo.svg" alt="Sentio Engine Logo" width="200"/>
+  <h1>Sentio Engine</h1>
+  <p>A Self-Sufficient Emotional Engine for Advanced AI</p>
+  <p>
+    <img src="https://img.shields.io/badge/Project%20Status-Active-brightgreen" alt="Project Status: Active"/>
+    <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"/>
+    <img src="https://img.shields.io/badge/Python-3.12+-3776AB.svg?logo=python&logoColor=white" alt="Python Version"/>
+    <img src="https://img.shields.io/badge/Framework-FastAPI-009688.svg?logo=fastapi" alt="Framework: FastAPI"/>
+    <img src="https://img.shields.io/badge/API-Protobuf-blue" alt="API: Protobuf"/>
+  </p>
+</div>
 
-**Sentio Engine** is a sophisticated emotional engine designed to provide deep, nuanced emotional states for AI systems, particularly Large Language Models (LLMs) and NLP modules. It operates as a self-sufficient microservice, allowing for easy integration into any AI project.
-
-This engine simulates a complex emotional life, enabling AI to generate responses that are not only contextually appropriate but also emotionally aware.
-
-[Read the full documentation](./docs/en/01_introduction.md)
+[Читать на русском](README.ru.md)
 
 ---
 
-## Quick Start (Docker)
+## Table of Contents
+- [Why Sentio Engine?](#why-sentio-engine)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Real-World Use Cases](#real-world-use-cases)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Roadmap](#roadmap)
+- [Full Documentation](#full-documentation)
 
-The fastest way to get the Sentio Engine up and running is with Docker Compose.
+## Why Sentio Engine?
 
-1.  **Ensure you have Docker and Docker Compose installed.**
-2.  **Clone the repository:**
-    ```bash
-    git clone <repository_url>
-    cd <repository_name>
-    ```
-3.  **Build and run the service:**
-    ```bash
-    docker compose up --build -d
-    ```
-The API will be available at `http://localhost:8000`.
+While many AI systems can process language, few can grasp its emotional context. Sentio Engine addresses this gap by providing a **dedicated, stateful microservice for emotional simulation**.
 
-## Development Environment (Poetry)
+*   **Go Beyond Stateless Sentiment:** Instead of simple, one-off sentiment analysis, Sentio provides a persistent emotional state that evolves over time, giving your AI a consistent personality and memory.
+*   **Decoupled by Design:** As a standalone service, it can be integrated into any AI application, regardless of the primary programming language. It won't bloat your main application's logic.
+*   **High Performance:** Built with FastAPI and Protobuf, the engine is designed for low-latency communication, ensuring it won't be a bottleneck.
+*   **Deeply Customizable:** The AI's "personality"—its baseline moods, emotional responses, and core drives—is defined in simple JSON files, not code.
 
-For local development and contribution, we use Poetry for dependency management.
+## Key Features
 
-1.  **Install Poetry.** (See [official documentation](https://python-poetry.org/docs/#installation)).
-2.  **Navigate to the project directory:**
-    ```bash
-    cd sentio_engine
-    ```
-3.  **Install dependencies:**
-    ```bash
-    poetry install
-    ```
-4.  **Run the server:**
-    ```bash
-    poetry run uvicorn sentio_engine.api.main:app --host 0.0.0.0 --port 8000 --reload
-    ```
+- **Stateful Emotional Core:** Maintains an in-memory emotional state that reacts to stimuli and decays naturally over time.
+- **Protobuf API:** Uses a high-performance, language-agnostic Protocol Buffers API for communication (`POST /stimulus`, `GET /report`).
+- **Configurable Personality:** Define the AI's emotional palette, baseline moods, and decay rates in simple `.json` files.
+- **Long-Term Memory:** Logs significant emotional events to a SQLite database, creating a history of the AI's "life experiences."
+- **Dockerized & Ready to Deploy:** Comes with `Dockerfile` and `docker-compose.yml` for instant, hassle-free deployment.
+- **Modern Python Stack:** Built with Poetry, FastAPI, and SQLAlchemy, following modern development best practices.
 
-## Running Tests
+## Architecture
 
-To ensure the integrity and correctness of the engine's logic, run the unit tests:
-
-1.  **Navigate to the project directory:**
-    ```bash
-    cd sentio_engine
-    ```
-2.  **Execute the tests:**
-    ```bash
-    poetry run pytest
-    ```
-
-## High-Level Architecture
-
-The Sentio Engine is built on a modular, microservice architecture.
+The engine operates as a decoupled microservice, separating emotional processing from the main logic of your AI application.
 
 ```mermaid
 graph TD
     subgraph External Systems
-        A[LLM Parser] -->|Protobuf Stimulus| B(Sentio Engine API);
-        B -->|Protobuf Report| C[LLM Generator];
+        A[LLM Parser] -- Protobuf Stimulus --> B(Sentio Engine API);
+        B -- Protobuf Report --> C[LLM Generator];
     end
 
-    subgraph Sentio Engine
+    subgraph Sentio Engine Service
         B -- HTTP --> D[FastAPI Server];
-        D --> E[Core Engine];
-        E <--> F[SQLite Database];
-        E <--> G[Personality Configs];
+        D --> E[Core Engine Logic];
+        E <--> F[Personality Configs (.json)];
+        E <--> G[(SQLite Database)];
     end
 
     style B fill:#f9f,stroke:#333,stroke-width:2px
 ```
+1.  **LLM Parser:** An external component analyzes user input and translates it into a `Stimulus` message.
+2.  **Sentio Engine API:** Receives the `Stimulus`, passes it to the Core Engine, and stores emotional changes in the database.
+3.  **LLM Generator:** Before generating a response, it requests a `Report` from the engine and injects the AI's current emotional state into its system prompt.
 
-For a detailed explanation of the architecture, please see the [full documentation](./docs/en/02_architecture.md).
+## Real-World Use Cases
+
+#### Use Case 1: Empathetic Companion AI
+
+An AI companion can use Sentio to develop a consistent personality and emotional memory.
+- **Workflow:** A user tells the AI, "I'm so happy, I got a new job!"
+- **Execution:**
+    1.  The `LLM Parser` creates a `Stimulus` with high "joy" and "excitement".
+    2.  `Sentio Engine` processes this, and its internal state shifts to be more joyful.
+    3.  When the user talks to the AI the next day, the `LLM Generator` receives a `Report` that still shows a slightly elevated level of joy.
+    4.  The AI can then generate a response like, "It's great to talk to you again! Still feeling excited about the new job?"
+
+#### Use Case 2: Dynamic NPCs in a Video Game
+
+A game character's disposition towards the player can evolve based on in-game events.
+- **Workflow:** The player completes a quest that helps a village.
+- **Execution:**
+    1.  The game's event system sends a `Stimulus` with "gratitude" and "trust" to the Sentio Engine instance tied to a specific NPC.
+    2.  The NPC's internal state is updated.
+    3.  The next time the player talks to the NPC, the dialogue system gets a `Report` indicating high trust.
+    4.  The NPC's dialogue changes from generic greetings to warm and appreciative remarks, and they might even offer the player a discount at their shop.
+
+## Installation
+
+### With Docker (Recommended)
+1.  **Clone the repository.**
+2.  **Build and run the container:**
+    ```bash
+    docker compose up --build -d
+    ```
+
+### For Local Development
+1.  **Install Poetry.** (See [official documentation](https://python-poetry.org/docs/#installation)).
+2.  **Navigate to the project directory:** `cd sentio_engine`
+3.  **Install dependencies:** `poetry install`
+
+## Usage
+
+### Running the Service
+*   **With Docker:** The service will be available at `http://localhost:8000` after running `docker compose up`.
+*   **Locally:** Run `poetry run uvicorn sentio_engine.api.main:app --reload` from within the `sentio_engine` directory.
+
+### Running Tests
+1.  Navigate to the `sentio_engine` directory.
+2.  Run `poetry run pytest`.
+
+## Roadmap
+
+We are actively working to enhance the Sentio Engine. Key features on our roadmap include:
+
+- [ ] **Implement `drives.json`:** Fully integrate the core drives system to influence emotional processing.
+- [ ] **Implement `BeliefSystem.json`:** Add a belief system to allow core values to amplify or suppress emotions.
+- [ ] **Redis Integration:** Offer an optional Redis backend for short-term memory to enable stateless, horizontally scalable deployments.
+- [ ] **Admin Dashboard:** A simple web interface to visualize the engine's current emotional state in real-time.
+
+## Full Documentation
+
+For a deeper dive into the architecture, API, and configuration, please see the **[Full Documentation](./docs/en/01_introduction.md)**.
