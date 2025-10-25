@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentio-engine-deployment
+  labels:
+    app: sentio-engine
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sentio-engine
+  template:
+    metadata:
+      labels:
+        app: sentio-engine
+    spec:
+      containers:
+      - name: sentio-engine
+        # ВАЖНО: Замените 'your-docker-registry/sentio-engine:latest'
+        # на реальный путь к вашему образу в Docker Hub, GCR или другом реестре.
+        image: your-docker-registry/sentio-engine:latest
+        ports:
+        - containerPort: 8000
+        # Обратите внимание: Эта конфигурация не включает персистентное хранилище.
+        # База данных SQLite будет временной и будет сброшена при перезапуске пода.
+        # Для production-использования потребуется PersistentVolume или внешняя БД.
