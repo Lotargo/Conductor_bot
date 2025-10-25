@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-playwright
-kafka-python
-google-generativeai
-python-json-logger
-python-telegram-bot
