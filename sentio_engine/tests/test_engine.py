@@ -63,13 +63,13 @@ def test_process_stimulus_logs_to_db(engine: SentioEngine, db_session):
     assert history[0].emotion == "грусть"
     assert history[0].intensity > 0.7
 
-def test_emotion_decay(engine: SentioEngine, db_session):
+def test_emotion_decay(engine: SentioEngine):
     """Проверяет, что эмоции со временем затухают."""
     # Устанавливаем высокую интенсивность
     engine.state.emotions["доверие"] = 1.0
 
-    # Вызываем затухание через обработку пустого стимула
-    engine.process_stimulus(Stimulus(), db=db_session)
+    # Вызываем затухание напрямую
+    engine._decay_emotions()
 
     assert engine.state.emotions["доверие"] < 1.0
     # Проверяем, что оно стремится к базовому значению (0.2), а не к нулю

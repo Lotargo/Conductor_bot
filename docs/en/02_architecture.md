@@ -18,7 +18,7 @@ graph LR
         direction TB
         B -- HTTP Request --> D[FastAPI Server];
         D -- Calls --> E[Core Engine];
-        E -- Reads --> F[Personality Configs (.json)];
+        E -- Reads --> F["Personality Configs (.json)"];
         E -- "Reads/Writes" --> G[(SQLite Database)];
     end
 

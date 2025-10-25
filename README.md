@@ -58,7 +58,7 @@ graph TD
     subgraph Sentio Engine Service
         B -- HTTP --> D[FastAPI Server];
         D --> E[Core Engine Logic];
-        E <--> F[Personality Configs (.json)];
+        E <--> F["Personality Configs (.json)"];
         E <--> G[(SQLite Database)];
     end
 
