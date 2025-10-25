@@ -20,10 +20,10 @@ API Sentio Engine спроектирован для простоты и прои
 
 ```mermaid
 sequenceDiagram
-    participant C as Клиент (напр., LLM-парсер)
-    participant A as API (FastAPI)
-    participant E as Ядро Движка
-    participant DB as База данных (SQLite)
+    participant C as "Клиент (напр., LLM-парсер)"
+    participant A as "API (FastAPI)"
+    participant E as "Ядро Движка"
+    participant DB as "База данных (SQLite)"
 
     C->>A: POST /stimulus (бинарные данные Stimulus)
     A->>E: Вызывает `process_stimulus()` с десериализованным Stimulus

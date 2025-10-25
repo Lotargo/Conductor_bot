@@ -22,6 +22,7 @@
 - [Real-World Use Cases](#real-world-use-cases)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Kubernetes Deployment](#kubernetes-deployment)
 - [Roadmap](#roadmap)
 - [Full Documentation](#full-documentation)
 
@@ -112,6 +113,29 @@ A game character's disposition towards the player can evolve based on in-game ev
 ### Running Tests
 1.  Navigate to the `sentio_engine` directory.
 2.  Run `poetry run pytest`.
+
+## Kubernetes Deployment
+
+Basic manifests for deploying the application to a Kubernetes cluster are provided in the `/k8s` directory.
+
+**Prerequisites:**
+*   A running Kubernetes cluster.
+*   `kubectl` configured to connect to your cluster.
+*   A Docker image of the application pushed to a container registry.
+
+**Steps:**
+
+1.  **Update the Image Path:** In `k8s/deployment.yaml`, change the `image` field from `your-docker-registry/sentio-engine:latest` to the actual path of your published Docker image.
+
+2.  **Apply the Manifests:**
+    ```bash
+    kubectl apply -f k8s/deployment.yaml
+    kubectl apply -f k8s/service.yaml
+    ```
+
+This will create a `Deployment` running the application and a `Service` to expose it within the cluster at `http://sentio-engine-service`.
+
+**Note:** The provided configuration uses an ephemeral SQLite database. For production use, you should configure a persistent storage solution or an external database.
 
 ## Roadmap
 

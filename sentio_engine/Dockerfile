@@ -32,5 +32,6 @@ ENV PATH="/root/.cache/pypoetry/virtualenvs/sentio-engine-*-py3.12/bin:$PATH"
 # Открываем порт
 EXPOSE 8000
 
-# Запускаем приложение
-CMD ["uvicorn", "sentio_engine.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Запускаем приложение через Gunicorn для production
+# Gunicorn будет управлять Uvicorn воркерами
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8000", "sentio_engine.api.main:app"]
