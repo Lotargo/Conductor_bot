@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  sentio_engine:
+    build:
+      context: ./sentio_engine
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Обратите внимание: монтируем sentio_engine/sentio_engine в /app/sentio_engine,
+      # так как именно там теперь находится исходный код.
+      - ./sentio_engine/sentio_engine:/app/sentio_engine
+    environment:
+      - DATABASE_URL=sqlite:////app/sentio_engine.db
