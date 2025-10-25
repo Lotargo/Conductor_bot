@@ -68,7 +68,7 @@ def test_emotion_decay(engine: SentioEngine):
     # Устанавливаем высокую интенсивность
     engine.state.emotions["доверие"] = 1.0
 
-    # Вызываем затухание
+    # Вызываем затухание напрямую
     engine._decay_emotions()
 
     assert engine.state.emotions["доверие"] < 1.0
