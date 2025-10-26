@@ -1,0 +1,99 @@
+<svg width="900" height="650" xmlns="http://www.w3.org/2000/svg" style="background-color: #0d1117; border-radius: 8px;">
+    <!-- Animated Architecture Diagram for Sentio Engine -->
+    <defs>
+        <style>
+            .node-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; fill: #e6edf3; text-anchor: middle; dominant-baseline: central; }
+            .link-text { font-family: 'Roboto Mono', monospace; font-size: 13px; fill: #c9d1d9; text-anchor: middle; }
+            .subgraph-title { font-family: sans-serif; font-size: 16px; font-weight: bold; fill: #8b949e; text-anchor: middle; }
+        </style>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Слой 1: Статичные элементы -->
+    <g>
+        <!-- Рамки подграфов -->
+        <rect x="20" y="20" width="860" height="180" rx="8" fill="none" stroke="#30363d" stroke-width="2" stroke-dasharray="8 8"/>
+        <text x="450" y="45" class="subgraph-title">Внешние Системы</text>
+        <rect x="20" y="220" width="860" height="410" rx="8" fill="none" stroke="#30363d" stroke-width="2" stroke-dasharray="8 8"/>
+        <!-- Заголовок подграфа смещен вверх -->
+        <text x="450" y="240" class="subgraph-title">Сервис Sentio Engine</text>
+
+        <!-- Узлы -->
+        <rect x="100" y="100" width="150" height="50" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="2"/>
+        <text x="175" y="125" class="node-text">LLM-парсер</text>
+
+        <path d="M 450,70 L 525,125 L 450,180 L 375,125 Z" fill="#201a2b" stroke="#a371f7" stroke-width="2.5"/>
+        <text x="450" y="125" class="node-text">API Sentio Engine</text>
+
+        <rect x="650" y="100" width="150" height="50" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="2"/>
+        <text x="725" y="125" class="node-text">LLM-генератор</text>
+
+        <rect x="375" y="300" width="150" height="50" rx="6" fill="#1c2b22" stroke="#30a14e" stroke-width="2"/>
+        <text x="450" y="325" class="node-text">Сервер FastAPI</text>
+
+        <rect x="375" y="400" width="150" height="50" rx="6" fill="#1c2b22" stroke="#30a14e" stroke-width="2"/>
+        <text x="450" y="425" class="node-text">Логика Ядра Движка</text>
+
+        <rect x="100" y="525" width="250" height="50" rx="6" fill="#21262d" stroke="#6e7681" stroke-width="1.5"/>
+        <text x="225" y="550" class="node-text">Конфиги Личности (.json)</text>
+
+        <rect x="550" y="525" width="250" height="50" rx="6" fill="#21262d" stroke="#6e7681" stroke-width="1.5"/>
+        <text x="675" y="550" class="node-text">База данных (SQLite)</text>
+
+        <!-- Статичные стрелки и текст -->
+        <g stroke="#8b949e" stroke-width="2" fill="none" opacity="0.7">
+            <path id="path-A-B" d="M 250,125 L 375,125"/>
+            <path id="path-B-C" d="M 525,125 L 650,125"/>
+            <path id="path-B-D" d="M 450,180 L 450,300"/>
+            <path id="path-D-E" d="M 450,350 L 450,400"/>
+            <path id="path-E-F" d="M 375,425 L 225,425 L 225,525"/>
+            <path id="path-E-G" d="M 525,425 L 675,425 L 675,525"/>
+        </g>
+        <text class="link-text" x="318" y="115">Protobuf Stimulus</text>
+        <text class="link-text" x="587" y="115">Protobuf Report</text>
+        <text class="link-text" x="470" y="275">HTTP</text>
+    </g>
+
+    <!-- Слой 2: Анимация -->
+    <g filter="url(#glow)">
+        <!-- Шаг 1: Запрос от Парсера к API -->
+        <circle r="4" fill="#388bfd">
+            <animateMotion dur="2s" begin="0s; anim-loop.end + 1s" repeatCount="1" path="M 250,125 L 375,125" id="anim1"/>
+        </circle>
+        <!-- Шаг 2: API -> FastAPI -->
+        <circle r="5" fill="#a371f7">
+            <animateMotion dur="1.5s" begin="anim1.end" repeatCount="1" path="M 450,180 L 450,300" id="anim2"/>
+        </circle>
+        <!-- Шаг 3: FastAPI -> Ядро -->
+        <circle r="5" fill="#30a14e">
+            <animateMotion dur="1s" begin="anim2.end" repeatCount="1" path="M 450,350 L 450,400" id="anim3"/>
+        </circle>
+        
+        <!-- Шаг 4: Ядро взаимодействует с данными (параллельно) -->
+        <circle r="4" fill="#e3b341"> <!-- Чтение конфигов -->
+            <animateMotion dur="2s" begin="anim3.end" repeatCount="1" path="M 375,425 L 225,425 L 225,525" id="anim4a"/>
+        </circle>
+        <circle r="4" fill="#e3b341"> <!-- Запись в БД -->
+            <animateMotion dur="2s" begin="anim3.end" repeatCount="1" path="M 525,425 L 675,425 L 675,525" id="anim4b"/>
+        </circle>
+
+        <!-- Шаг 5: Ответы возвращаются в ядро (параллельно) -->
+        <circle r="4" fill="#e3b341">
+            <animateMotion dur="2s" begin="anim4a.end" repeatCount="1" path="M 225,525 L 225,425 L 375,425" id="anim5a"/>
+        </circle>
+        <circle r="4" fill="#e3b341">
+            <animateMotion dur="2s" begin="anim4b.end" repeatCount="1" path="M 675,525 L 675,425 L 525,425" id="anim5b"/>
+        </circle>
+
+        <!-- Шаг 6: API отправляет отчет Генератору (после завершения работы ядра) -->
+        <circle r="4" fill="#388bfd">
+            <animateMotion dur="2s" begin="anim5b.end" repeatCount="1" path="M 525,125 L 650,125" id="anim-loop"/>
+        </circle>
+    </g>
+</svg>
