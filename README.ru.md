@@ -48,22 +48,10 @@
 
 Движок работает как слабосвязанный микросервис, отделяя эмоциональную обработку от основной логики вашего приложения ИИ.
 
-```mermaid
-graph TD
-    subgraph Внешние Системы
-        A[LLM-парсер] -- Protobuf Stimulus --> B(API Sentio Engine);
-        B -- Protobuf Report --> C[LLM-генератор];
-    end
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Lotargo/Conductor_bot/refs/heads/main/docs/assets/Animated%20Architecture%20Diagram_for_Sentio_Engine_ru.svg" alt="Анимированная диаграмма" width="900"/>
+</div>
 
-    subgraph Сервис Sentio Engine
-        B -- HTTP --> D[Сервер FastAPI];
-        D --> E[Логика Ядра Движка];
-        E <--> F["Конфиги Личности (.json)"];
-        E <--> G["База данных (SQLite)"];
-    end
-
-    style B fill:#f9f,stroke:#333,stroke-width:2px
-```
 1.  **LLM-парсер:** Внешний компонент анализирует ввод пользователя и преобразует его в сообщение `Stimulus`.
 2.  **API Sentio Engine:** Получает `Stimulus`, передает его в Ядро Движка и сохраняет эмоциональные изменения в базе данных.
 3.  **LLM-генератор:** Перед генерацией ответа запрашивает `Report` у движка и внедряет текущее эмоциональное состояние ИИ в свой системный промпт.
