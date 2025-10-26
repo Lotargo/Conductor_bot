@@ -5,8 +5,9 @@ Sentio Engine спроектирован как модульный и слабо
 Ниже представлено подробное описание каждого компонента и его роли в экосистеме.
 
 ## Диаграмма компонентов
+
 <div align="center">
-<img src="docs/assets/sentio_architecture_diagram_ru.svg" alt="Sentio Engine Logo" width="900"/>
+  <img src="docs/assets/sentio_architecture_diagram.svg" alt="Анимированная диаграмма архитектуры Sentio Engine" width="900"/>
 </div>
 
 ## Описание компонентов
