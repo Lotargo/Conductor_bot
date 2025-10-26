@@ -6,27 +6,7 @@ Sentio Engine спроектирован как модульный и слабо
 
 ## Диаграмма компонентов
 
-```mermaid
-graph LR
-    subgraph Внешние Системы
-        direction LR
-        A[LLM-парсер] -- Protobuf --> B{API Sentio Engine};
-        B -- Protobuf --> C[LLM-генератор];
-    end
-
-    subgraph Сервис Sentio Engine
-        direction TB
-        B -- HTTP-запрос --> D[Сервер FastAPI];
-        D -- Вызовы --> E[Ядро Движка];
-        E -- Чтение --> F["Конфиги Личности (.json)"];
-        E -- "Чтение/Запись" --> G["База данных (SQLite)"];
-    end
-
-    style A fill:#cce5ff,stroke:#333
-    style C fill:#cce5ff,stroke:#333
-    style B fill:#f9f,stroke:#333,stroke-width:2px
-    style E fill:#ccffcc,stroke:#333
-```
+<img src="docs/assets/Диаграмма_компонентов.svg" alt="Sentio Engine Logo" width="500"/>
 
 ## Описание компонентов
 
