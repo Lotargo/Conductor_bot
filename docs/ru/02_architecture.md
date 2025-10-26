@@ -6,7 +6,9 @@ Sentio Engine спроектирован как модульный и слабо
 
 ## Диаграмма компонентов
 
-![Анимированная диаграмма архитектуры Sentio Engine](docs/assets/sentio_architecture_diagram_ru.svg)
+<div align="center">
+  <img src="/Lotargo/Conductor_bot/blob/main/docs/assets/sentio_architecture_diagram_ru.svg" alt="Анимированная диаграмма" width="900"/>
+</div>
 
 ## Описание компонентов
 
