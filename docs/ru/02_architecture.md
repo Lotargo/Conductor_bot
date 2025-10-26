@@ -6,7 +6,7 @@ Sentio Engine спроектирован как модульный и слабо
 
 ## Диаграмма компонентов
 <div align="center">
-<img src="docs/assets/Диаграмма_компонентов.svg" alt="Sentio Engine Logo" width="500"/>
+<img src="docs/assets/sentio_architecture_diagram_ru.svg" alt="Sentio Engine Logo" width="900"/>
 </div>
 
 ## Описание компонентов
