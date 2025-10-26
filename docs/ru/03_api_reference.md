@@ -18,21 +18,9 @@ API Sentio Engine спроектирован для простоты и прои
 
 Эта диаграмма показывает поток типичного запроса `POST /stimulus`.
 
-```mermaid
-sequenceDiagram
-    participant C as "Клиент (напр., LLM-парсер)"
-    participant A as "API (FastAPI)"
-    participant E as "Ядро Движка"
-    participant DB as "База данных (SQLite)"
-
-    C->>A: POST /stimulus (бинарные данные Stimulus)
-    A->>E: Вызывает `process_stimulus()` с десериализованным Stimulus
-    E->>E: Обновляет EmotionalState в памяти
-    E->>DB: Записывает изменения в таблицу EmotionalHistory
-    DB-->>E: Подтверждает запись
-    E-->>A: Возвращает успех
-    A-->>C: Отвечает `204 No Content`
-```
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Lotargo/Conductor_bot/refs/heads/main/docs/assets/Stimulus_Processing_ru.svg" alt="Анимированная диаграмма" width="900"/>
+</div>
 
 ### 2. `GET /report`
 
