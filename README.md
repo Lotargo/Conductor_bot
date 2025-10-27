@@ -41,7 +41,8 @@ While many AI systems can process language, few can grasp its emotional context.
 - **Protobuf API:** Uses a high-performance, language-agnostic Protocol Buffers API for communication (`POST /stimulus`, `GET /report`).
 - **Configurable Personality:** Define the AI's emotional palette, baseline moods, and decay rates in simple `.json` files.
 - **Long-Term Memory:** Logs significant emotional events to a SQLite database, creating a history of the AI's "life experiences."
-- **Dockerized & Ready to Deploy:** Comes with `Dockerfile` and `docker-compose.yml` for instant, hassle-free deployment.
+- **Built-in Redis Caching:** Uses Redis to cache responses for recurring stimuli, significantly improving performance.
+- **Dockerized & Ready to Deploy:** Comes with a `docker-compose.yml` file to instantly launch the application and its Redis cache.
 - **Modern Python Stack:** Built with Poetry, FastAPI, and SQLAlchemy, following modern development best practices.
 
 ## Architecture
@@ -94,10 +95,11 @@ A game character's disposition towards the player can evolve based on in-game ev
 
 ### With Docker (Recommended)
 1.  **Clone the repository.**
-2.  **Build and run the container:**
+2.  **Build and run the services:**
     ```bash
     docker compose up --build -d
     ```
+    This command will start both the Sentio Engine application and the Redis cache.
 
 ### For Local Development
 1.  **Install Poetry.** (See [official documentation](https://python-poetry.org/docs/#installation)).
@@ -143,7 +145,7 @@ We are actively working to enhance the Sentio Engine. Key features on our roadma
 
 - [ ] **Implement `drives.json`:** Fully integrate the core drives system to influence emotional processing.
 - [ ] **Implement `BeliefSystem.json`:** Add a belief system to allow core values to amplify or suppress emotions.
-- [ ] **Redis Integration:** Offer an optional Redis backend for short-term memory to enable stateless, horizontally scalable deployments.
+- [x] **Redis Integration:** Offer an optional Redis backend for short-term memory to enable stateless, horizontally scalable deployments.
 - [ ] **Admin Dashboard:** A simple web interface to visualize the engine's current emotional state in real-time.
 
 ## Full Documentation
