@@ -9,14 +9,11 @@ from contextlib import asynccontextmanager
 from sentio_engine.data.database import create_db_and_tables, get_db
 from sentio_engine.cache.redis_client import get_redis_client
 
-# --- DB Initialization ---
-# This is executed once when the module is first imported by Gunicorn's master process.
-create_db_and_tables()
-
 # --- Lifespan Manager ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управляет жизненным циклом приложения."""
+    print("Запуск приложения...")
     yield
     print("Приложение остановлено.")
 
