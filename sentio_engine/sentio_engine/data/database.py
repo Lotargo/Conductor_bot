@@ -39,7 +39,7 @@ class RelationshipState(Base):
 
 def create_db_and_tables():
     """Создает все таблицы в базе данных."""
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, checkfirst=True)
 
 # Удобная функция для получения сессии БД
 def get_db():
