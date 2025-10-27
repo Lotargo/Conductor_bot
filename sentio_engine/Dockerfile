@@ -1,5 +1,5 @@
 # --- Ступень 1: Сборка зависимостей ---
-FROM python:3.12-slim as builder
+FROM python:3.11-slim as builder
 
 # Устанавливаем Poetry
 RUN pip install poetry
@@ -15,7 +15,7 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry install --no-root --without dev
 
 # --- Ступень 2: Финальный образ ---
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ COPY sentio_engine/ ./sentio_engine/
 
 # Указываем Python-интерпретатор из нашего виртуального окружения
 # Имя virtualenv может меняться, поэтому используем wildcard
-ENV PATH="/root/.cache/pypoetry/virtualenvs/sentio-engine-*-py3.12/bin:$PATH"
+ENV PATH="/root/.cache/pypoetry/virtualenvs/sentio-engine-*-py3.11/bin:$PATH"
 
 # Открываем порт
 EXPOSE 8000
