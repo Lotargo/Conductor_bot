@@ -12,7 +12,7 @@ COPY pyproject.toml poetry.lock* ./
 
 # Устанавливаем зависимости в виртуальное окружение,
 # --no-root, так как исходный код еще не скопирован
-RUN poetry install --no-root --no-dev
+RUN poetry install --no-root --without dev
 
 # --- Ступень 2: Финальный образ ---
 FROM python:3.10-slim
