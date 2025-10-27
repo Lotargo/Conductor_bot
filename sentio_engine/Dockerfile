@@ -26,6 +26,7 @@ COPY --from=builder /app/.venv/ ./.venv/
 
 # Копируем исходный код нашего приложения
 COPY sentio_engine/ ./sentio_engine/
+COPY config/ ./config/
 
 # Указываем Python-интерпретатор из нашего виртуального окружения
 ENV PATH="/app/.venv/bin:$PATH"
