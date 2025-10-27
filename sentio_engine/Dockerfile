@@ -28,12 +28,19 @@ COPY --from=builder /app/.venv/ ./.venv/
 COPY sentio_engine/ ./sentio_engine/
 COPY config/ ./config/
 
+# Копируем и делаем исполняемым entrypoint скрипт
+COPY entrypoint.sh .
+RUN chmod +x ./entrypoint.sh
+
 # Указываем Python-интерпретатор из нашего виртуального окружения
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Открываем порт
 EXPOSE 8000
 
+# Задаем entrypoint
+ENTRYPOINT ["./entrypoint.sh"]
+
 # Запускаем приложение через Gunicorn для production
-# Gunicorn будет управлять Uvicorn воркерами
+# Эта команда будет передана в entrypoint.sh
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8000", "sentio_engine.api.main:app"]
