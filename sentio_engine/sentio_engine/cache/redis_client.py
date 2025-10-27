@@ -1,6 +1,5 @@
 import os
 import redis
-from fakeredis import FakeStrictRedis
 
 _redis_pool = None
 _fake_redis_instance = None
@@ -13,6 +12,7 @@ def get_redis_client():
     testing = os.getenv("TESTING", "false").lower() == "true"
 
     if testing:
+        from fakeredis import FakeStrictRedis
         global _fake_redis_instance
         if _fake_redis_instance is None:
             _fake_redis_instance = FakeStrictRedis()
