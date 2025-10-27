@@ -67,11 +67,10 @@ class SentioEngine:
             decay_rate = self.emotion_definitions.get(emotion, {}).get("decay_rate", 0.99)
             base_intensity = self.emotion_definitions.get(emotion, {}).get("base_intensity", 0.0)
 
-            # Эмоция стремится вернуться к своему базовому уровню
-            if intensity > base_intensity:
-                self.state.emotions[emotion] = max(base_intensity, intensity * decay_rate)
-            else:
-                self.state.emotions[emotion] = min(base_intensity, intensity / decay_rate if decay_rate != 0 else 0)
+            # Эмоция экспоненциально затухает до своего базового уровня.
+            # Эта формула работает как для затухания "вниз", так и для "вверх".
+            new_intensity = base_intensity + (intensity - base_intensity) * decay_rate
+            self.state.emotions[emotion] = new_intensity
 
     def get_report(self) -> Report:
         """Возвращает полный отчет о текущем состоянии."""

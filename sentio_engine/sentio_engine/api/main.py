@@ -9,25 +9,24 @@ from contextlib import asynccontextmanager
 from sentio_engine.data.database import create_db_and_tables, get_db
 from sentio_engine.cache.redis_client import get_redis_client
 
-# --- Lifespan Manager ---
+# --- DB Initialization ---
+# This is executed once when the module is first imported by Gunicorn's master process.
+create_db_and_tables()
 
+# --- Lifespan Manager ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управляет жизненным циклом приложения."""
-    print("Создание таблиц в базе данных...")
-    create_db_and_tables()
     yield
     print("Приложение остановлено.")
 
 # --- Инициализация Приложения и Движка ---
-
 app = FastAPI(title="Sentio Engine API", lifespan=lifespan)
 
 config_path = Path(__file__).resolve().parent.parent.parent / "config"
 engine = SentioEngine(config_path=config_path)
 
 # --- API Эндпоинты ---
-
 @app.post("/stimulus", status_code=204, summary="Применить стимул к движку")
 async def apply_stimulus(request: Request, db: Session = Depends(get_db)):
     body = await request.body()
@@ -70,7 +69,6 @@ def get_engine_report():
     return Response(content=serialized_report, media_type="application/protobuf")
 
 # --- Запуск Сервера (для локальной разработки) ---
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
