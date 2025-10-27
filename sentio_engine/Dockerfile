@@ -30,6 +30,8 @@ COPY config/ ./config/
 
 # Копируем и делаем исполняемым entrypoint скрипт
 COPY entrypoint.sh .
+# Исправляем возможные проблемы с окончаниями строк (CRLF -> LF)
+RUN sed -i 's/\r$//' ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 # Указываем Python-интерпретатор из нашего виртуального окружения
