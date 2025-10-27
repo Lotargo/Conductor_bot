@@ -34,9 +34,48 @@ sequenceDiagram
     A-->>C: Responds `204 No Content`
 ```
 
-### 2. `GET /report`
+### 2. `POST /process_and_report` (Cached)
 
-This endpoint retrieves the current emotional state of the engine.
+This endpoint is the recommended way to interact with the engine for stateless queries. It processes a `Stimulus` and immediately returns the updated `Report`, with built-in caching to handle repeated requests.
+
+*   **Method:** `POST`
+*   **Request Body:** A binary, serialized `Stimulus` Protobuf message.
+*   **Content-Type:** `application/protobuf`
+*   **Successful Response:** `200 OK` with a binary, serialized `Report` Protobuf message.
+*   **Error Response:** `400 Bad Request` if the request body is not a valid `Stimulus` message.
+
+#### Caching Behavior
+
+*   **Cache Key:** A SHA-256 hash of the incoming `Stimulus` message.
+*   **Cache Storage:** Redis.
+*   **On Cache Hit:** The engine returns the cached `Report` directly without processing the stimulus or altering its internal state.
+*   **On Cache Miss:** The engine processes the stimulus, updates its state, gets the new `Report`, stores it in Redis (with a 1-hour TTL), and then returns it to the client.
+
+#### Sequence Diagram (Cache Miss)
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API (FastAPI)
+    participant R as Redis Cache
+    participant E as Core Engine
+    participant DB as Database (SQLite)
+
+    C->>A: POST /process_and_report (binary Stimulus data)
+    A->>R: Check cache with hash(Stimulus)
+    R-->>A: Cache Miss
+    A->>E: Calls `process_stimulus()`
+    E->>DB: Logs changes
+    DB-->>E: Confirms write
+    E->>A: Returns new Report
+    A->>R: Store Report in cache (TTL 1h)
+    R-->>A: Confirms write
+    A-->>C: Responds `200 OK` (binary Report data)
+```
+
+### 3. `GET /report`
+
+This endpoint retrieves the current emotional state of the engine. It's useful for debugging or when using the stateful `POST /stimulus` endpoint.
 
 *   **Method:** `GET`
 *   **Response Body:** A binary, serialized `Report` Protobuf message.
