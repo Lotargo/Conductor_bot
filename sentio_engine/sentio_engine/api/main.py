@@ -52,7 +52,7 @@ async def process_and_report(request: Request, db: Session = Depends(get_db)):
         return Response(content=cached_report_str, media_type="application/protobuf")
 
     engine.process_stimulus(stimulus, db=db)
-    report = engine.get_report()
+    report = engine.get_report(db=db)
     serialized_report = report.SerializeToString()
 
     redis_client.setex(stimulus_hash, 3600, serialized_report)
@@ -60,8 +60,8 @@ async def process_and_report(request: Request, db: Session = Depends(get_db)):
     return Response(content=serialized_report, media_type="application/protobuf")
 
 @app.get("/report", response_class=Response, summary="Получить отчет о состоянии")
-def get_engine_report():
-    report = engine.get_report()
+def get_engine_report(db: Session = Depends(get_db)):
+    report = engine.get_report(db=db)
     serialized_report = report.SerializeToString()
     return Response(content=serialized_report, media_type="application/protobuf")
 

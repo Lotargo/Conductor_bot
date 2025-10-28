@@ -75,3 +75,31 @@ def test_emotion_decay(engine: SentioEngine):
     # decay_rate = 0.99, base_intensity = 0.2
     # new = 0.2 + (1.0 - 0.2) * 0.99 = 0.992
     assert engine.state.emotions["доверие"] == pytest.approx(0.992)
+
+def test_time_based_decay_synchronization(engine: SentioEngine, db_session):
+    """Проверяет, что затухание корректно синхронизируется со временем."""
+    import datetime
+    from sentio_engine.data.database import EngineState
+
+    # 1. Устанавливаем высокую радость
+    engine.state.emotions["радость"] = 1.0
+
+    # 2. Первый вызов для инициализации времени
+    engine._synchronize_decay(db=db_session)
+
+    # 3. "Перематываем время назад" в БД
+    state = db_session.query(EngineState).first()
+    assert state is not None
+    ten_minutes_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=10)
+    state.last_update_timestamp = ten_minutes_ago
+    db_session.commit()
+
+    # 4. Вызываем синхронизацию снова
+    engine._synchronize_decay(db=db_session)
+
+    # 5. Проверяем, что эмоция значительно затухла
+    # За 10 минут (600 секунд) при шаге в 60с должно быть 10 итераций затухания.
+    # Интенсивность должна быть сильно меньше 1.0, но больше базовой (0.1).
+    final_joy = engine.state.emotions["радость"]
+    assert final_joy < 0.8  # Проверяем, что затухание было существенным
+    assert final_joy > engine.emotion_definitions["радость"]["base_intensity"]

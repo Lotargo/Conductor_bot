@@ -37,6 +37,12 @@ class RelationshipState(Base):
     intimacy = Column(Float, default=0.0) # Уровень близости/доверия
     trust = Column(Float, default=0.5) # Уровень доверия
 
+class EngineState(Base):
+    """Хранит мета-состояние самого движка."""
+    __tablename__ = "engine_state"
+    id = Column(Integer, primary_key=True)
+    last_update_timestamp = Column(DateTime, nullable=False)
+
 def create_db_and_tables():
     """Создает все таблицы в базе данных."""
     Base.metadata.create_all(bind=engine, checkfirst=True)
