@@ -24,6 +24,8 @@ class SentioEngine:
             self.engine_settings = json.load(f)
         with open(self.config_path / "feelings.json", "r", encoding="utf-8") as f:
             self.feelings_definitions = json.load(f)
+        with open(self.config_path / "BeliefSystem.json", "r", encoding="utf-8") as f:
+            self.belief_system = json.load(f)["personality"]
 
     def _initialize_state(self):
         """Инициализирует начальное эмоциональное состояние."""
@@ -81,7 +83,10 @@ class SentioEngine:
 
         for emotion, intensity in stimulus.emotions.items():
             if emotion in self.state.emotions:
-                self.state.emotions[emotion] += intensity
+                modifier = self._calculate_personality_modifier(emotion)
+                modified_intensity = intensity * modifier
+
+                self.state.emotions[emotion] += modified_intensity
                 self.state.emotions[emotion] = max(0.0, min(1.0, self.state.emotions[emotion]))
 
                 history_entry = EmotionalHistory(
@@ -95,6 +100,26 @@ class SentioEngine:
         self._apply_dominance()
         db.commit()
         self._update_primary_mood()
+
+    def _calculate_personality_modifier(self, emotion: str) -> float:
+        """Вычисляет множитель для стимула на основе черт личности."""
+        emotion_def = self.emotion_definitions.get(emotion, {})
+        influences = emotion_def.get("personality_influence", {})
+        if not influences:
+            return 1.0
+
+        total_modifier = 1.0
+        for trait, factor in influences.items():
+            trait_value = self.belief_system.get(trait, {}).get("value", 0.5)
+
+            # Формула: 1 + (значение_черты - 0.5) * (фактор - 1)
+            # Это центрирует эффект вокруг 0.5. Если черта = 0.5, эффекта нет.
+            # Если черта > 0.5, эффект положительный/отрицательный в зависимости от фактора.
+            # Если черта < 0.5, эффект инвертируется.
+            modifier_effect = (trait_value - 0.5) * (factor - 1.0)
+            total_modifier += modifier_effect
+
+        return max(0.1, total_modifier) # Ограничиваем, чтобы не инвертировать эмоцию
 
     def _apply_dominance(self):
         """Применяет эффект доминантности, где более сильная эмоция в паре подавляет более слабую."""
