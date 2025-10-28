@@ -89,8 +89,41 @@ class SentioEngine:
                 )
                 db.add(history_entry)
 
+        # Применяем доминантность до коммита, чтобы в БД попало итоговое состояние
+        self._apply_dominance()
         db.commit()
         self._update_primary_mood()
+
+    def _apply_dominance(self):
+        """Применяет эффект доминантности, где более сильная эмоция в паре подавляет более слабую."""
+        dominance_factor = self.engine_settings.get("dominance_factor", 0.5)
+        processed_emotions = set()
+
+        for emotion, intensity in self.state.emotions.items():
+            if emotion in processed_emotions:
+                continue
+
+            definition = self.emotion_definitions.get(emotion, {})
+            opposite_emotion = definition.get("opposite")
+
+            if not opposite_emotion or opposite_emotion not in self.state.emotions:
+                continue
+
+            opposite_intensity = self.state.emotions[opposite_emotion]
+
+            # Определяем, какая эмоция доминирует
+            if intensity > opposite_intensity:
+                # Текущая эмоция подавляет противоположную
+                suppression = intensity * dominance_factor
+                self.state.emotions[opposite_emotion] = max(0.0, opposite_intensity - suppression)
+            elif opposite_intensity > intensity:
+                # Противоположная эмоция подавляет текущую
+                suppression = opposite_intensity * dominance_factor
+                self.state.emotions[emotion] = max(0.0, intensity - suppression)
+
+            processed_emotions.add(emotion)
+            processed_emotions.add(opposite_emotion)
+
 
     def _decay_emotions(self):
         """Моделирует постепенное затухание эмоций со временем."""
@@ -98,10 +131,10 @@ class SentioEngine:
             decay_rate = self.emotion_definitions.get(emotion, {}).get("decay_rate", 0.99)
             base_intensity = self.emotion_definitions.get(emotion, {}).get("base_intensity", 0.0)
 
-            # Эмоция экспоненциально затухает до своего базового уровня.
-            # Эта формула работает как для затухания "вниз", так и для "вверх".
             new_intensity = base_intensity + (intensity - base_intensity) * decay_rate
             self.state.emotions[emotion] = new_intensity
+
+        self._apply_dominance()
 
     def get_report(self, db: Session) -> Report:
         """Синхронизирует состояние и возвращает полный отчет."""
