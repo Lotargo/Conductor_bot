@@ -22,6 +22,8 @@ class SentioEngine:
             self.drive_definitions = json.load(f)["definitions"]
         with open(self.config_path / "engine_settings.json", "r", encoding="utf-8") as f:
             self.engine_settings = json.load(f)
+        with open(self.config_path / "feelings.json", "r", encoding="utf-8") as f:
+            self.feelings_definitions = json.load(f)
 
     def _initialize_state(self):
         """Инициализирует начальное эмоциональное состояние."""
@@ -127,7 +129,10 @@ class SentioEngine:
 
     def _decay_emotions(self):
         """Моделирует постепенное затухание эмоций со временем."""
-        for emotion, intensity in self.state.emotions.items():
+        # Создаем копию словаря для безопасной итерации
+        emotions_snapshot = dict(self.state.emotions)
+
+        for emotion, intensity in emotions_snapshot.items():
             decay_rate = self.emotion_definitions.get(emotion, {}).get("decay_rate", 0.99)
             base_intensity = self.emotion_definitions.get(emotion, {}).get("base_intensity", 0.0)
 
@@ -136,11 +141,67 @@ class SentioEngine:
 
         self._apply_dominance()
 
+    def _evaluate_complex_states(self, db: Session) -> list[str]:
+        """Анализирует историю эмоций для выявления сложных состояний (чувств)."""
+        active_states = []
+        now = datetime.datetime.utcnow()
+
+        for state_name, definition in self.feelings_definitions.items():
+            duration_hours = definition.get("required_duration_hours", 24 * 14)
+            start_time = now - datetime.timedelta(hours=duration_hours)
+
+            is_state_active = True
+
+            # Предварительная проверка: есть ли в окне хоть какие-то записи?
+            # Если нет, то состояние точно не активно.
+            has_any_record_in_window = db.query(EmotionalHistory).filter(EmotionalHistory.timestamp >= start_time).first() is not None
+            if not has_any_record_in_window:
+                is_state_active = False
+            else:
+                for condition in definition.get("conditions", []):
+                    emotion = condition["emotion"]
+                    threshold = condition["threshold"]
+                    operator = condition["operator"]
+
+                    # 1. Проверка на НАРУШЕНИЯ: ищем записи, которые НЕ соответствуют условию.
+                    q_violating = db.query(EmotionalHistory).filter(
+                        EmotionalHistory.timestamp >= start_time,
+                        EmotionalHistory.emotion == emotion
+                    )
+                    if operator == ">=":
+                        q_violating = q_violating.filter(EmotionalHistory.intensity < threshold)
+                    elif operator == "<=":
+                        q_violating = q_violating.filter(EmotionalHistory.intensity > threshold)
+
+                    if db.query(q_violating.exists()).scalar():
+                        is_state_active = False
+                        break # Нарушение найдено, прекращаем проверку этого состояния.
+
+                    # 2. Проверка на НАЛИЧИЕ: убеждаемся, что для данной эмоции есть хоть одна запись в периоде.
+                    # Если записей нет, мы не можем утверждать, что условие выполнялось.
+                    q_presence = db.query(EmotionalHistory).filter(
+                        EmotionalHistory.timestamp >= start_time,
+                        EmotionalHistory.emotion == emotion
+                    )
+                    if not db.query(q_presence.exists()).scalar():
+                        is_state_active = False
+                        break # Нет данных для этой эмоции, прекращаем проверку.
+
+            if is_state_active:
+                active_states.append(state_name)
+
+        return active_states
+
     def get_report(self, db: Session) -> Report:
         """Синхронизирует состояние и возвращает полный отчет."""
         self._synchronize_decay(db)
         report = Report()
         report.emotional_state.CopyFrom(self.state)
+
+        # Анализируем и добавляем комплексные состояния
+        active_complex_states = self._evaluate_complex_states(db)
+        report.complex_states.extend(active_complex_states)
+
         return report
 
 # Пример использования (для тестирования)

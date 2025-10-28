@@ -23,7 +23,6 @@ message EmotionalState {
 // LLM-генератор может использовать этот отчет для стилизации своего ответа.
 message Report {
   EmotionalState emotional_state = 1;
-  // В будущем сюда можно добавить и другие метрики:
-  // map<string, float> neuromediators = 2; // Уровни нейромедиаторов
-  // map<string, float> relationship_metrics = 3; // Метрики отношений
+  // Список активных долгосрочных состояний (например, "депрессия", "тревожность").
+  repeated string complex_states = 2;
 }
