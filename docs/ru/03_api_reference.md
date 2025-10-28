@@ -2,155 +2,125 @@
 
 API Sentio Engine спроектирован для простоты и производительности, используя Protocol Buffers (Protobuf) для обмена данными.
 
-## Эндпоинты
+## Основные эндпоинты
 
-### 1. `POST /stimulus`
+### `POST /stimulus`
+Применяет стимул к эмоциональному состоянию движка.
+*   **Тело запроса:** `Stimulus`
+*   **Ответ:** `204 No Content`
 
-Это основной эндпоинт для влияния на эмоциональное состояние движка.
+### `GET /report`
+Возвращает полный отчет о текущем состоянии движка.
+*   **Тело ответа:** `Report`
 
-*   **Метод:** `POST`
-*   **Тело запроса:** Бинарное, сериализованное `Stimulus` Protobuf-сообщение.
-*   **Content-Type:** `application/protobuf`
-*   **Успешный ответ:** `204 No Content`. Это означает, что стимул был успешно получен и обработан.
-*   **Ответ с ошибкой:** `400 Bad Request`, если тело запроса не является валидным `Stimulus` сообщением.
+### `POST /process_and_report` (Кэшируемый)
+Комбинированный эндпоинт, который применяет стимул и немедленно возвращает отчет. Ответы кэшируются в Redis.
+*   **Тело запроса:** `Stimulus`
+*   **Тело ответа:** `Report`
 
-#### Диаграмма последовательности
+### `POST /process_agent_text`
+Обрабатывает текст от LLM-агента, ищет специальный тег `[SENTIO_EMO_STATE]` и обновляет состояние на основе найденного JSON.
+*   **Тело запроса:** `{"text": "..."}`
+*   **Ответ:** `204 No Content`
 
-Эта диаграмма показывает поток типичного запроса `POST /stimulus`.
+## Эндпоинты управления личностью
 
-<div align="center">
-  <img src="../assets/Stimulus_Processing_ru.svg" alt="Анимированная диаграмма обработки стимула" width="900"/>
-</div>
+Эти эндпоинты предоставляют "API-мост" к когнитивной призме движка, позволяя внешним системам читать и динамически изменять профиль личности ИИ.
 
-### 2. `POST /process_and_report` (Кэшируемый)
-
-Этот эндпоинт — рекомендуемый способ взаимодействия с движком для stateless-запросов. Он обрабатывает `Stimulus` и немедленно возвращает обновленный `Report`, со встроенным кэшированием для обработки повторяющихся запросов.
-
-*   **Метод:** `POST`
-*   **Тело запроса:** Бинарное, сериализованное `Stimulus` Protobuf-сообщение.
-*   **Content-Type:** `application/protobuf`
-*   **Успешный ответ:** `200 OK` с бинарным, сериализованным `Report` Protobuf-сообщением.
-*   **Ответ с ошибкой:** `400 Bad Request`, если тело запроса не является валидным `Stimulus` сообщением.
-
-#### Логика кэширования
-
-*   **Ключ кэша:** Хеш SHA-256 входящего сообщения `Stimulus`.
-*   **Хранилище кэша:** Redis.
-*   **При попадании в кэш (Cache Hit):** Движок возвращает кэшированный `Report` напрямую, не обрабатывая стимул и не изменяя свое внутреннее состояние.
-*   **При промахе кэша (Cache Miss):** Движок обрабатывает стимул, обновляет свое состояние, получает новый `Report`, сохраняет его в Redis (с TTL в 1 час), а затем возвращает его клиенту.
-
-#### Диаграмма последовательности (Промах кэша)
-
-```mermaid
-sequenceDiagram
-    participant C as Клиент
-    participant A as API (FastAPI)
-    participant R as Кэш Redis
-    participant E as Ядро движка
-    participant DB as База данных (SQLite)
-
-    C->>A: POST /process_and_report (бинарные данные Stimulus)
-    A->>R: Проверить кэш с помощью hash(Stimulus)
-    R-->>A: Промах кэша
-    A->>E: Вызывает `process_stimulus()`
-    E->>DB: Записывает изменения
-    DB-->>E: Подтверждает запись
-    E->>A: Возвращает новый Report
-    A->>R: Сохранить Report в кэше (TTL 1 час)
-    R-->>A: Подтверждает запись
-    A-->>C: Отвечает `200 OK` (бинарные данные Report)
-```
-
-### 3. `GET /report`
-
-Этот эндпоинт получает текущее эмоциональное состояние движка.
-
+### `GET /personality`
+Возвращает текущий профиль личности ИИ.
 *   **Метод:** `GET`
-*   **Тело ответа:** Бинарное, сериализованное `Report` Protobuf-сообщение.
-*   **Content-Type:** `application/protobuf`
-*   **Успешный ответ:** `200 OK` с бинарным `Report` в теле.
+*   **Тело ответа:** `PersonalityProfile` (Protobuf)
+*   **Успешный ответ:** `200 OK`
+
+### `POST /personality`
+Обновляет профиль личности ИИ. Можно передавать как полный профиль, так и только те черты, которые нужно изменить.
+*   **Метод:** `POST`
+*   **Тело запроса:** `PersonalityProfile` (Protobuf)
+*   **Успешный ответ:** `204 No Content`
+
+## Служебные эндпоинты
+
+### `GET /health`
+Проверяет работоспособность сервиса.
+*   **Метод:** `GET`
+*   **Тело ответа:** `HealthStatus` (Protobuf)
+*   **Успешный ответ:** `200 OK`
+
+---
 
 ## Схемы Protobuf
 
-API использует следующие Protobuf-сообщения, определенные в `sentio_engine/schemas/sentio.proto`.
+### Основные сообщения
 
-### `Stimulus`
+`Stimulus`, `Report`, `EmotionalState` (без изменений).
 
-Представляет внешнее событие, которое может вызвать эмоциональное изменение.
+### Новые сообщения для управления личностью
 
+#### `PersonalityProfile`
+Представляет полный профиль личности, состоящий из карты черт.
 ```proto
-message Stimulus {
-  // Карта названий эмоций и их интенсивности (от 0.0 до 1.0).
-  // Движок добавит эту интенсивность к текущему состоянию.
-  map<string, float> emotions = 1;
+message PersonalityProfile {
+  // Карта названий черт и их данных.
+  // Пример: "neuroticism": { value: 0.8, description: "..." }
+  map<string, PersonalityTrait> traits = 1;
 }
 ```
 
-### `Report`
-
-Полный снимок текущего состояния движка, отправляемый клиентам.
-
+#### `PersonalityTrait`
+Представляет одну черту личности.
 ```proto
-message Report {
-  // Текущее сиюминутное эмоциональное состояние.
-  EmotionalState emotional_state = 1;
-
-  // Список активных долгосрочных комплексных состояний (чувств),
-  // таких как "депрессивное состояние" или "эйфория".
-  // Это поле будет пустым, если ни одно из состояний не активно.
-  repeated string complex_states = 2;
+message PersonalityTrait {
+  float value = 1;        // Значение черты (0.0 до 1.0)
+  string description = 2; // Описание
 }
 ```
 
-### `EmotionalState`
+### Новые служебные сообщения
 
-Описывает внутреннее эмоциональное состояние ИИ. Это основная структура данных внутри `Report`.
-
+#### `HealthStatus`
+Представляет статус работоспособности сервиса.
 ```proto
-message EmotionalState {
-  // Текущая интенсивность всех активных эмоций.
-  map<string, float> emotions = 1;
-
-  // Доминирующее настроение, производное от текущих эмоций.
-  string primary_mood = 2;
-
-  // Самая последняя причина текущего эмоционального состояния.
-  string cause = 3;
+message HealthStatus {
+  string status = 1; // Всегда "OK" при успехе
 }
 ```
 
 ## Пример клиента (Python)
 
-Вот простой пример того, как взаимодействовать с API с помощью Python.
+Вот расширенный пример, демонстрирующий взаимодействие с новыми эндпоинтами.
 
 ```python
 import requests
-from sentio_engine.schemas.sentio_pb2 import Stimulus, Report
+from sentio_engine.schemas.sentio_pb2 import HealthStatus, PersonalityProfile, PersonalityTrait
 
 BASE_URL = "http://127.0.0.1:8000"
 
-# --- Создание и отправка стимула ---
-stimulus = Stimulus()
-stimulus.emotions["радость"] = 0.7
-stimulus.emotions["любопытство"] = 0.4
-
-response = requests.post(
-    f"{BASE_URL}/stimulus",
-    data=stimulus.SerializeToString(),
-    headers={'Content-Type': 'application/protobuf'}
-)
-print(f"Стимул отправлен. Код состояния: {response.status_code}")
-
-
-# --- Получение обновленного отчета ---
-response = requests.get(f"{BASE_URL}/report")
+# --- Проверка работоспособности ---
+response = requests.get(f"{BASE_URL}/health")
 if response.status_code == 200:
-    report = Report()
-    report.ParseFromString(response.content)
-    print("Получен отчет:")
-    print(report)
-```
+    health = HealthStatus()
+    health.ParseFromString(response.content)
+    print(f"Статус сервиса: {health.status}")
 
+# --- Получение и обновление личности ---
+response_get = requests.get(f"{BASE_URL}/personality")
+if response_get.status_code == 200:
+    profile = PersonalityProfile()
+    profile.ParseFromString(response_get.content)
+    print(f"Текущее значение нейротизма: {profile.traits['neuroticism'].value:.2f}")
+
+    # Изменяем значение
+    profile.traits['neuroticism'].value = 0.8
+
+    # Отправляем обновленный профиль
+    response_post = requests.post(
+        f"{BASE_URL}/personality",
+        data=profile.SerializeToString(),
+        headers={'Content-Type': 'application/protobuf'}
+    )
+    print(f"Запрос на обновление отправлен. Код состояния: {response_post.status_code}")
+```
 ---
 
 **Далее:** [Конфигурация личности](./04_configuration.md)

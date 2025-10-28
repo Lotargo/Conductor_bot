@@ -52,8 +52,51 @@ def test_process_agent_text_success(client):
 # --- Тест для эндпоинта /report ---
 import datetime
 from sentio_engine.data.database import EmotionalHistory
-from sentio_engine.schemas.sentio_pb2 import Report
+from sentio_engine.schemas.sentio_pb2 import Report, HealthStatus, PersonalityProfile
 from sentio_engine.api.main import engine as api_engine # импортируем инстанс движка из API
+
+# --- Тесты для служебных эндпоинтов ---
+
+def test_health_check(client):
+    """Тест: Эндпоинт /health возвращает статус OK."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    health_status = HealthStatus()
+    health_status.ParseFromString(response.content)
+    assert health_status.status == "OK"
+
+# --- Тесты для эндпоинтов управления личностью ---
+
+def test_get_personality(client):
+    """Тест: Эндпоинт /personality возвращает корректный профиль личности."""
+    response = client.get("/personality")
+    assert response.status_code == 200
+    profile = PersonalityProfile()
+    profile.ParseFromString(response.content)
+    assert "neuroticism" in profile.traits
+    assert profile.traits["neuroticism"].value == pytest.approx(0.5)
+
+def test_update_personality(client):
+    """Тест: Эндпоинт /personality корректно обновляет профиль личности."""
+    # Arrange: Создаем новый профиль
+    new_profile = PersonalityProfile()
+    new_profile.traits["openness"].value = 0.9
+    new_profile.traits["neuroticism"].value = 0.2
+
+    # Act: Отправляем POST-запрос
+    response = client.post("/personality", content=new_profile.SerializeToString())
+    assert response.status_code == 204
+
+    # Assert: Проверяем, что изменения применились, сделав GET-запрос
+    response_get = client.get("/personality")
+    updated_profile = PersonalityProfile()
+    updated_profile.ParseFromString(response_get.content)
+
+    assert updated_profile.traits["openness"].value == pytest.approx(0.9)
+    assert updated_profile.traits["neuroticism"].value == pytest.approx(0.2)
+    # Проверяем, что остальные черты остались без изменений
+    assert updated_profile.traits["extraversion"].value == pytest.approx(0.5)
+
 
 def test_report_includes_complex_states(client, db_session):
     """
