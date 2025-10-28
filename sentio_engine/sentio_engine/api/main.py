@@ -65,6 +65,50 @@ def get_engine_report():
     serialized_report = report.SerializeToString()
     return Response(content=serialized_report, media_type="application/protobuf")
 
+
+# --- Эндпоинт для обработки текста от Агента ---
+import re
+import json
+from pydantic import BaseModel
+
+class AgentText(BaseModel):
+    text: str
+
+def _parse_emotions_from_text(text: str) -> dict | None:
+    """Извлекает JSON-объект с эмоциями из специального тега в тексте."""
+    match = re.search(r"\[SENTIO_EMO_STATE\](.*?)\[/SENTIO_EMO_STATE\]", text, re.DOTALL)
+    if not match:
+        return None
+
+    json_str = match.group(1).strip()
+    try:
+        emotions = json.loads(json_str)
+        if isinstance(emotions, dict):
+            return emotions
+    except json.JSONDecodeError:
+        return None
+    return None
+
+@app.post("/process_agent_text", status_code=204, summary="Обработать текст от агента и извлечь эмоции")
+async def process_agent_text(payload: AgentText, db: Session = Depends(get_db)):
+    """
+    Этот эндпоинт ищет в тексте специальный блок [SENTIO_EMO_STATE]...[/SENTIO_EMO_STATE]
+    и использует найденный в нем JSON для обновления эмоционального состояния.
+    """
+    emotions_to_process = _parse_emotions_from_text(payload.text)
+
+    if emotions_to_process:
+        stimulus = Stimulus()
+        for emotion, intensity in emotions_to_process.items():
+            if isinstance(intensity, (int, float)):
+                stimulus.emotions[emotion] = float(intensity)
+
+        if stimulus.emotions:
+            engine.process_stimulus(stimulus, db=db)
+
+    return Response(status_code=204)
+
+
 # --- Запуск Сервера (для локальной разработки) ---
 if __name__ == "__main__":
     import uvicorn

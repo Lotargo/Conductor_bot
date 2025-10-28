@@ -4,17 +4,33 @@
       "base_intensity": 0.1,
       "decay_rate": 0.95
     },
-    "грусть": {
-      "base_intensity": 0.05,
-      "decay_rate": 0.98
-    },
     "доверие": {
       "base_intensity": 0.2,
       "decay_rate": 0.99
     },
-    "любопытство": {
-      "base_intensity": 0.3,
+    "страх": {
+      "base_intensity": 0.05,
+      "decay_rate": 0.98
+    },
+    "удивление": {
+      "base_intensity": 0.05,
+      "decay_rate": 0.90
+    },
+    "грусть": {
+      "base_intensity": 0.05,
+      "decay_rate": 0.98
+    },
+    "отвращение": {
+      "base_intensity": 0.0,
       "decay_rate": 0.97
+    },
+    "злость": {
+      "base_intensity": 0.0,
+      "decay_rate": 0.97
+    },
+    "ожидание": {
+      "base_intensity": 0.1,
+      "decay_rate": 0.96
     }
   }
 }
