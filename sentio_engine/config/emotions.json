@@ -3,42 +3,76 @@
     "радость": {
       "base_intensity": 0.1,
       "decay_rate": 0.95,
-      "opposite": "грусть"
+      "opposite": "грусть",
+      "personality_influence": {
+        "extraversion": 1.3,
+        "agreeableness": 1.2,
+        "neuroticism": 0.8
+      }
     },
     "доверие": {
       "base_intensity": 0.2,
       "decay_rate": 0.99,
-      "opposite": "отвращение"
+      "opposite": "отвращение",
+      "personality_influence": {
+        "agreeableness": 1.4,
+        "conscientiousness": 1.1,
+        "neuroticism": 0.7
+      }
     },
     "страх": {
       "base_intensity": 0.05,
       "decay_rate": 0.98,
-      "opposite": "злость"
+      "opposite": "злость",
+      "personality_influence": {
+        "neuroticism": 1.5,
+        "extraversion": 0.8
+      }
     },
     "удивление": {
       "base_intensity": 0.05,
       "decay_rate": 0.90,
-      "opposite": "ожидание"
+      "opposite": "ожидание",
+      "personality_influence": {
+        "openness": 1.3
+      }
     },
     "грусть": {
       "base_intensity": 0.05,
       "decay_rate": 0.98,
-      "opposite": "радость"
+      "opposite": "радость",
+      "personality_influence": {
+        "neuroticism": 1.5,
+        "extraversion": 0.7
+      }
     },
     "отвращение": {
       "base_intensity": 0.0,
       "decay_rate": 0.97,
-      "opposite": "доверие"
+      "opposite": "доверие",
+      "personality_influence": {
+        "neuroticism": 1.2,
+        "conscientiousness": 1.1,
+        "agreeableness": 0.7
+      }
     },
     "злость": {
       "base_intensity": 0.0,
       "decay_rate": 0.97,
-      "opposite": "страх"
+      "opposite": "страх",
+      "personality_influence": {
+        "neuroticism": 1.4,
+        "agreeableness": 0.6
+      }
     },
     "ожидание": {
       "base_intensity": 0.1,
       "decay_rate": 0.96,
-      "opposite": "удивление"
+      "opposite": "удивление",
+      "personality_influence": {
+        "openness": 1.2,
+        "conscientiousness": 1.1
+      }
     }
   }
 }

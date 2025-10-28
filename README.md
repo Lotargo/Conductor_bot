@@ -136,8 +136,8 @@ We are actively working to enhance the Sentio Engine. Key features on our roadma
 - [x] ~~**Time Simulation:** Emotions now decay in real-time, even when the server is idle.~~ (Implemented)
 - [x] ~~**Dominance Mechanism:** Opposing emotions (per Plutchik's model) now suppress each other.~~ (Implemented)
 - [x] ~~**Complex States Engine:** The system can now identify long-term feelings (e.g., "depressive state") by analyzing history.~~ (Implemented)
+- [x] ~~**Implement `BeliefSystem.json`:** Added a belief system based on the "Big Five" personality traits to modulate emotional responses.~~ (Implemented)
 - [ ] **Implement `drives.json`:** Fully integrate the core drives system to influence emotional processing.
-- [ ] **Implement `BeliefSystem.json`:** Add a belief system to allow core values to amplify or suppress emotions.
 - [ ] **Admin Dashboard:** A simple web interface to visualize the engine's current emotional state in real-time.
 
 ## Full Documentation
