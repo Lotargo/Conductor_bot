@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/logo.svg" alt="Sentio Engine Logo" width="200"/>
+  <img src="docs/assets/sentio_logo.svg" alt="Animated Sentio Engine Logo" width="200"/>
   <h1>Sentio Engine</h1>
   <p>A Self-Sufficient Emotional Engine for Advanced AI</p>
   <p>
@@ -49,22 +49,10 @@ While many AI systems can process language, few can grasp its emotional context.
 
 The engine operates as a decoupled microservice, separating emotional processing from the main logic of your AI application.
 
-```mermaid
-graph TD
-    subgraph External Systems
-        A[LLM Parser] -- Protobuf Stimulus --> B(Sentio Engine API);
-        B -- Protobuf Report --> C[LLM Generator];
-    end
+<div align="center">
+  <img src="docs/assets/sentio_architecture_diagram_ru.svg" alt="Animated Architecture Diagram" width="900"/>
+</div>
 
-    subgraph Sentio Engine Service
-        B -- HTTP --> D[FastAPI Server];
-        D --> E[Core Engine Logic];
-        E <--> F["Personality Configs (.json)"];
-        E <--> G[(SQLite Database)];
-    end
-
-    style B fill:#f9f,stroke:#333,stroke-width:2px
-```
 1.  **LLM Parser:** An external component analyzes user input and translates it into a `Stimulus` message.
 2.  **Sentio Engine API:** Receives the `Stimulus`, passes it to the Core Engine, and stores emotional changes in the database.
 3.  **LLM Generator:** Before generating a response, it requests a `Report` from the engine and injects the AI's current emotional state into its system prompt.
@@ -143,9 +131,13 @@ This will create a `Deployment` running the application and a `Service` to expos
 
 We are actively working to enhance the Sentio Engine. Key features on our roadmap include:
 
+- [x] ~~**Redis Integration:** Offer an optional Redis backend for short-term memory.~~ (Implemented)
+- [x] ~~**Agent Protocol:** Implemented an endpoint (`/process_agent_text`) for reliable state updates from LLM agents.~~ (Implemented)
+- [x] ~~**Time Simulation:** Emotions now decay in real-time, even when the server is idle.~~ (Implemented)
+- [x] ~~**Dominance Mechanism:** Opposing emotions (per Plutchik's model) now suppress each other.~~ (Implemented)
+- [x] ~~**Complex States Engine:** The system can now identify long-term feelings (e.g., "depressive state") by analyzing history.~~ (Implemented)
 - [ ] **Implement `drives.json`:** Fully integrate the core drives system to influence emotional processing.
 - [ ] **Implement `BeliefSystem.json`:** Add a belief system to allow core values to amplify or suppress emotions.
-- [x] **Redis Integration:** Offer an optional Redis backend for short-term memory to enable stateless, horizontally scalable deployments.
 - [ ] **Admin Dashboard:** A simple web interface to visualize the engine's current emotional state in real-time.
 
 ## Full Documentation

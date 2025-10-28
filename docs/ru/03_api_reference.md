@@ -19,7 +19,7 @@ API Sentio Engine спроектирован для простоты и прои
 Эта диаграмма показывает поток типичного запроса `POST /stimulus`.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Lotargo/Conductor_bot/refs/heads/main/docs/assets/Stimulus_Processing_ru.svg" alt="Анимированная диаграмма" width="900"/>
+  <img src="../assets/Stimulus_Processing_ru.svg" alt="Анимированная диаграмма обработки стимула" width="900"/>
 </div>
 
 ### 2. `POST /process_and_report` (Кэшируемый)
