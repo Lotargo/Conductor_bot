@@ -26,3 +26,23 @@ message Report {
   // Список активных долгосрочных состояний (например, "депрессия", "тревожность").
   repeated string complex_states = 2;
 }
+
+// --- Сообщения для управления личностью ---
+
+// Представляет одну черту личности.
+message PersonalityTrait {
+  float value = 1;
+  string description = 2;
+}
+
+// Представляет полный профиль личности.
+message PersonalityProfile {
+  map<string, PersonalityTrait> traits = 1;
+}
+
+// --- Сообщения для служебных эндпоинтов ---
+
+// Представляет статус работоспособности сервиса.
+message HealthStatus {
+  string status = 1;
+}
