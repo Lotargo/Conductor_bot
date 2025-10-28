@@ -2,35 +2,43 @@
   "definitions": {
     "радость": {
       "base_intensity": 0.1,
-      "decay_rate": 0.95
+      "decay_rate": 0.95,
+      "opposite": "грусть"
     },
     "доверие": {
       "base_intensity": 0.2,
-      "decay_rate": 0.99
+      "decay_rate": 0.99,
+      "opposite": "отвращение"
     },
     "страх": {
       "base_intensity": 0.05,
-      "decay_rate": 0.98
+      "decay_rate": 0.98,
+      "opposite": "злость"
     },
     "удивление": {
       "base_intensity": 0.05,
-      "decay_rate": 0.90
+      "decay_rate": 0.90,
+      "opposite": "ожидание"
     },
     "грусть": {
       "base_intensity": 0.05,
-      "decay_rate": 0.98
+      "decay_rate": 0.98,
+      "opposite": "радость"
     },
     "отвращение": {
       "base_intensity": 0.0,
-      "decay_rate": 0.97
+      "decay_rate": 0.97,
+      "opposite": "доверие"
     },
     "злость": {
       "base_intensity": 0.0,
-      "decay_rate": 0.97
+      "decay_rate": 0.97,
+      "opposite": "страх"
     },
     "ожидание": {
       "base_intensity": 0.1,
-      "decay_rate": 0.96
+      "decay_rate": 0.96,
+      "opposite": "удивление"
     }
   }
 }

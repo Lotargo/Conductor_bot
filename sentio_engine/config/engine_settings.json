@@ -1,3 +1,4 @@
 {
-  "simulation_tick_seconds": 60
+  "simulation_tick_seconds": 60,
+  "dominance_factor": 0.5
 }
