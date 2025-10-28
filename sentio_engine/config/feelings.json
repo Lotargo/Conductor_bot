@@ -1,0 +1,34 @@
+{
+  "депрессивное состояние": {
+    "description": "Хронически подавленное настроение в сочетании с потерей способности получать удовольствие (ангедония).",
+    "required_duration_hours": 336,
+    "conditions": [
+      {
+        "emotion": "грусть",
+        "threshold": 0.7,
+        "operator": ">="
+      },
+      {
+        "emotion": "радость",
+        "threshold": 0.1,
+        "operator": "<="
+      }
+    ]
+  },
+  "эйфория": {
+    "description": "Кратковременное, но интенсивное состояние восторга и сильной радости.",
+    "required_duration_hours": 1,
+    "conditions": [
+      {
+        "emotion": "радость",
+        "threshold": 0.8,
+        "operator": ">="
+      },
+      {
+        "emotion": "ожидание",
+        "threshold": 0.5,
+        "operator": ">="
+      }
+    ]
+  }
+}

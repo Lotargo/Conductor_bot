@@ -49,6 +49,41 @@ def test_process_agent_text_success(client):
     response = client.post("/process_agent_text", json=text_payload)
     assert response.status_code == 204
 
+# --- Тест для эндпоинта /report ---
+import datetime
+from sentio_engine.data.database import EmotionalHistory
+from sentio_engine.schemas.sentio_pb2 import Report
+from sentio_engine.api.main import engine as api_engine # импортируем инстанс движка из API
+
+def test_report_includes_complex_states(client, db_session):
+    """
+    Тест: Проверяет, что эндпоинт /report корректно возвращает комплексные состояния.
+    """
+    # 1. Создаем историю, достаточную для активации состояния
+    required_hours = api_engine.feelings_definitions["депрессивное состояние"]["required_duration_hours"]
+    for i in range(required_hours + 5):
+        # Создаем запись для грусти
+        ts_sad = datetime.datetime.utcnow() - datetime.timedelta(hours=i)
+        entry_sad = EmotionalHistory(emotion="грусть", intensity=0.9, cause="test", timestamp=ts_sad)
+        db_session.add(entry_sad)
+
+        # Создаем запись для радости
+        ts_joy = datetime.datetime.utcnow() - datetime.timedelta(hours=i)
+        entry_joy = EmotionalHistory(emotion="радость", intensity=0.1, cause="test", timestamp=ts_joy)
+        db_session.add(entry_joy)
+    db_session.commit()
+
+    # 2. Делаем GET-запрос
+    response = client.get("/report")
+    assert response.status_code == 200
+
+    # 3. Парсим Protobuf-ответ
+    report = Report()
+    report.ParseFromString(response.content)
+
+    # 4. Проверяем наличие комплексного состояния
+    assert "депрессивное состояние" in report.complex_states
+
 def test_process_agent_text_no_tag(client):
     """Тест: текст без тега не должен вызывать ошибок."""
     text_payload = {"text": "Просто текст без какого-либо тега."}

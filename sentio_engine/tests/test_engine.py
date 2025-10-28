@@ -121,3 +121,55 @@ def test_dominance_is_suppressed_by_stronger_emotion(engine: SentioEngine):
     # new_joy = 0.3 - (0.8 * 0.5) = -0.1 -> 0.0
     assert engine.state.emotions["радость"] == pytest.approx(0.0)
     assert engine.state.emotions["грусть"] == pytest.approx(0.8)
+
+# --- Тесты для Комплексных Состояний ---
+import datetime
+
+class TestComplexStates:
+    def _create_history(self, db_session, emotion, intensity, hours_ago, cause="test"):
+        """Хелпер для создания записей в истории."""
+        timestamp = datetime.datetime.utcnow() - datetime.timedelta(hours=hours_ago)
+        entry = EmotionalHistory(
+            emotion=emotion,
+            intensity=intensity,
+            cause=cause,
+            timestamp=timestamp
+        )
+        db_session.add(entry)
+        db_session.commit()
+
+    def test_no_complex_state_on_short_history(self, engine: SentioEngine, db_session):
+        """Проверяет, что состояние не определяется, если история слишком коротка."""
+        # Симулируем высокую грусть, но только за последние 12 часов
+        for i in range(12):
+            self._create_history(db_session, "грусть", 0.8, hours_ago=i)
+
+        states = engine._evaluate_complex_states(db_session)
+        assert "депрессивное состояние" not in states
+
+    def test_detects_depression_state(self, engine: SentioEngine, db_session):
+        """Проверяет корректное определение 'депрессивного состояния'."""
+        # Согласно feelings.json, нужно 2 недели (336 часов)
+        # Условие: грусть >= 0.7, радость <= 0.2
+        required_hours = engine.feelings_definitions["депрессивное состояние"]["required_duration_hours"]
+
+        # Симулируем 350 часов (с запасом)符合условий
+        for i in range(required_hours + 20):
+            self._create_history(db_session, "грусть", 0.8, hours_ago=i)
+            self._create_history(db_session, "радость", 0.1, hours_ago=i)
+
+        states = engine._evaluate_complex_states(db_session)
+        assert "депрессивное состояние" in states
+
+    def test_depression_state_not_detected_if_joy_is_present(self, engine: SentioEngine, db_session):
+        """Проверяет, что состояние не определяется, если радость периодически высокая."""
+        required_hours = engine.feelings_definitions["депрессивное состояние"]["required_duration_hours"]
+
+        for i in range(required_hours + 20):
+            self._create_history(db_session, "грусть", 0.8, hours_ago=i)
+            # Каждые 10 часов происходит вспышка радости, нарушающая условие
+            joy_intensity = 0.5 if i % 10 == 0 else 0.1
+            self._create_history(db_session, "радость", joy_intensity, hours_ago=i)
+
+        states = engine._evaluate_complex_states(db_session)
+        assert "депрессивное состояние" not in states
