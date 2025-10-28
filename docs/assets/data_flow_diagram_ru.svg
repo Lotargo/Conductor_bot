@@ -1,0 +1,98 @@
+<svg width="900" height="600" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg" style="background-color: #1a1a1a; color: #d0d0d0; font-family: 'Segoe UI', sans-serif;">
+    <defs>
+        <marker id="arrowhead-flow" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#E0115F"/>
+        </marker>
+        <style>
+            .actor { font-size: 14px; font-weight: bold; fill: #d0d0d0; }
+            .line { stroke: #E0115F; stroke-width: 1.5; marker-end: url(#arrowhead-flow); }
+            .line-dashed { stroke-dasharray: 5,5; }
+            .text { font-size: 12px; fill: #d0d0d0; }
+            .dot { r: 4; }
+            .user-dot { fill: #4682B4; }
+            .stimulus-dot { fill: #DA70D6; }
+            .report-dot { fill: #FFD700; }
+            .response-dot { fill: #4682B4; }
+        </style>
+    </defs>
+
+    <!-- Title -->
+    <text x="450" y="30" text-anchor="middle" class="title" style="font-size: 20px;">Полный Цикл Взаимодействия</text>
+
+    <!-- Actors -->
+    <text x="75" y="80" text-anchor="middle" class="actor">Пользователь</text>
+    <line x1="75" y1="90" x2="75" y2="550" stroke="#d0d0d0" stroke-width="1"/>
+
+    <text x="250" y="80" text-anchor="middle" class="actor">Приложение</text>
+    <line x1="250" y1="90" x2="250" y2="550" stroke="#d0d0d0" stroke-width="1"/>
+
+    <text x="450" y="80" text-anchor="middle" class="actor">LLM-Парсер</text>
+    <line x1="450" y1="90" x2="450" y2="550" stroke="#d0d0d0" stroke-width="1"/>
+
+    <text x="650" y="80" text-anchor="middle" class="actor">Sentio Engine</text>
+    <line x1="650" y1="90" x2="650" y2="550" stroke="#d0d0d0" stroke-width="1"/>
+
+    <text x="825" y="80" text-anchor="middle" class="actor">LLM-Генератор</text>
+    <line x1="825" y1="90" x2="825" y2="550" stroke="#d0d0d0" stroke-width="1"/>
+
+    <!-- Animation Paths -->
+    <!-- 1. User -> App -->
+    <path id="p1" d="M 85,120 H 240" class="line"/>
+    <text x="162.5" y="115" class="text">1. "Ура! Новая работа!"</text>
+    <circle class="dot user-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 85,120 H 240"/>
+    </circle>
+
+    <!-- 2. App -> Parser -->
+    <path d="M 260,170 H 440" class="line"/>
+    <text x="350" y="165" class="text">2. Анализ текста</text>
+    <circle class="dot user-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 260,170 H 440"/>
+    </circle>
+
+    <!-- 3. Parser -> App (Response) -->
+    <path d="M 440,220 H 260" class="line line-dashed"/>
+    <text x="350" y="215" class="text">3. Stimulus (Радость: 0.7)</text>
+    <circle class="dot stimulus-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 440,220 H 260"/>
+    </circle>
+
+    <!-- 4. App -> Sentio -->
+    <path d="M 260,270 H 640" class="line"/>
+    <text x="450" y="265" class="text">4. POST /stimulus</text>
+    <circle class="dot stimulus-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 260,270 H 640"/>
+    </circle>
+
+    <!-- 5. App -> Sentio (Get Report) -->
+    <path d="M 260,350 H 640" class="line"/>
+    <text x="450" y="345" class="text">5. GET /report</text>
+
+    <!-- 6. Sentio -> App (Report) -->
+    <path d="M 640,400 H 260" class="line line-dashed"/>
+    <text x="450" y="395" class="text">6. Report (настроение: радость)</text>
+    <circle class="dot report-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 640,400 H 260"/>
+    </circle>
+
+    <!-- 7. App -> Generator -->
+    <path d="M 260,450 H 815" class="line"/>
+    <text x="537.5" y="445" class="text">7. Генерация с контекстом</text>
+    <circle class="dot report-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 260,450 H 815"/>
+    </circle>
+
+    <!-- 8. Generator -> App (Response) -->
+    <path d="M 815,500 H 260" class="line line-dashed"/>
+    <text x="537.5" y="495" class="text">8. "Поздравляю!"</text>
+    <circle class="dot response-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 815,500 H 260"/>
+    </circle>
+
+    <!-- 9. App -> User -->
+    <path d="M 240,540 H 85" class="line"/>
+    <text x="162.5" y="535" class="text">9. Финальный ответ</text>
+    <circle class="dot response-dot">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M 240,540 H 85"/>
+    </circle>
+</svg>

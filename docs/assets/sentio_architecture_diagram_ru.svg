@@ -1,136 +1,66 @@
-<svg width="950" height="500" xmlns="http://www.w3.org/2000/svg" style="background-color: #0d1117; border-radius: 8px;">
-    <!-- Final Fixed Diagram -->
-
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="background-color: #1a1a1a; color: #d0d0d0; font-family: 'Segoe UI', sans-serif;">
     <defs>
-        <!-- Стили -->
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#E0115F"/>
+        </marker>
         <style>
-            /* Основной текст в блоках - яркий и четкий */
-            .node-text {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-                font-size: 14px;
-                font-weight: 600;
-                fill: #ffffff;
-                text-anchor: middle;
-                dominant-baseline: central;
-            }
-            /* Текст на связях - чуть меньше, но тоже четкий */
-            .link-text {
-                font-family: 'Roboto Mono', monospace;
-                font-size: 13px;
-                font-weight: 500;
-                fill: #c9d1d9; /* Светло-серый, хорошо читается на темном */
-            }
-            .subgraph-title {
-                font-family: sans-serif;
-                font-size: 16px;
-                font-weight: bold;
-                fill: #8b949e;
-            }
+            .box { fill: #2a2a2a; stroke: #8B0000; stroke-width: 1; rx: 5; }
+            .title { font-size: 16px; font-weight: bold; fill: #E0115F; }
+            .text { font-size: 12px; fill: #d0d0d0; }
+            .line { stroke: #E0115F; stroke-width: 1.5; marker-end: url(#arrowhead); }
+            .flow-dot { fill: #E0115F; r: 3; }
         </style>
-        <!-- Эффект свечения ТОЛЬКО для частиц -->
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-            <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        </filter>
     </defs>
 
-    <!-- ================= ГРАФИЧЕСКИЙ СЛОЙ ================= -->
+    <!-- Title -->
+    <text x="450" y="30" text-anchor="middle" class="title" style="font-size: 20px;">Архитектура Компонентов Sentio Engine</text>
 
-    <!-- Подграфы (фоновые рамки) -->
-    <g>
-        <rect x="20" y="20" width="910" height="150" rx="8" fill="none" stroke="#30363d" stroke-width="2" stroke-dasharray="8 8"/>
-        <text x="475" y="45" class="subgraph-title" text-anchor="middle">Внешние Системы</text>
-        
-        <rect x="20" y="190" width="910" height="290" rx="8" fill="none" stroke="#30363d" stroke-width="2" stroke-dasharray="8 8"/>
-        <text x="475" y="220" class="subgraph-title" text-anchor="middle">Сервис Sentio Engine</text>
+    <!-- Components -->
+    <!-- LLM Parser -->
+    <g transform="translate(50, 100)">
+        <rect width="200" height="80" class="box"/>
+        <text x="100" y="25" text-anchor="middle" class="title">LLM-Парсер</text>
+        <text x="100" y="50" text-anchor="middle" class="text">Анализ текста</text>
+        <text x="100" y="65" text-anchor="middle" class="text">Создание Stimulus</text>
     </g>
 
-    <!-- Связи (статичные линии) - рисуем ДО блоков, чтобы они были под ними -->
-    <g stroke="#8b949e" stroke-width="2" fill="none">
-        <!-- Горизонтальные -->
-        <path d="M 210,100 L 375,100" opacity="0.6"></path> <!-- A -> B -->
-        <path d="M 575,100 L 740,100" opacity="0.6"></path> <!-- B -> C -->
-        
-        <!-- Вертикальные -->
-        <path d="M 475,130 L 475,260" opacity="0.6"></path> <!-- B -> D -->
-        <path d="M 475,310 L 475,380" opacity="0.6"></path> <!-- D -> E -->
-        
-        <!-- Ветвление вправо -->
-        <path d="M 550,405 L 620,405 L 620,335 L 660,335" opacity="0.6"></path> <!-- E -> F -->
-        <path d="M 550,405 L 620,405 L 620,435 L 660,435" opacity="0.6"></path> <!-- E -> G -->
+    <!-- Sentio Engine -->
+    <g transform="translate(350, 200)">
+        <rect width="200" height="120" class="box" style="stroke-width: 2;"/>
+        <text x="100" y="25" text-anchor="middle" class="title">Sentio Engine</text>
+        <text x="100" y="50" text-anchor="middle" class="text">API (FastAPI)</text>
+        <text x="100" y="65" text-anchor="middle" class="text">Ядро</text>
+        <text x="100" y="80" text-anchor="middle" class="text">Конфигурация</text>
+        <text x="100" y="95" text-anchor="middle" class="text">База данных (SQLite)</text>
     </g>
 
-    <!-- Блоки (Узлы) -->
-    <g>
-        <!-- A [LLM-парсер] -->
-        <rect x="60" y="75" width="150" height="50" rx="6" fill="#0d1117" stroke="#388bfd" stroke-width="2"></rect>
-        <text x="135" y="100" class="node-text">LLM-парсер</text>
-
-        <!-- B {API Sentio Engine} - Сделан шире -->
-        <path d="M 475,70 L 575,100 L 475,130 L 375,100 Z" fill="#161b22" stroke="#a371f7" stroke-width="2"></path>
-        <text x="475" y="100" class="node-text">API Sentio Engine</text>
-
-        <!-- C [LLM-генератор] -->
-        <rect x="740" y="75" width="150" height="50" rx="6" fill="#0d1117" stroke="#388bfd" stroke-width="2"></rect>
-        <text x="815" y="100" class="node-text">LLM-генератор</text>
-        
-        <!-- D [Сервер FastAPI] -->
-        <rect x="400" y="260" width="150" height="50" rx="6" fill="#0d1117" stroke="#30a14e" stroke-width="2"></rect>
-        <text x="475" y="285" class="node-text">Сервер FastAPI</text>
-
-        <!-- E [Ядро Движка] -->
-        <rect x="400" y="380" width="150" height="50" rx="6" fill="#0d1117" stroke="#30a14e" stroke-width="2"></rect>
-        <text x="475" y="405" class="node-text">Ядро Движка</text>
-
-        <!-- F ["Конфиги Личности"] -->
-        <rect x="660" y="310" width="250" height="50" rx="6" fill="#21262d" stroke="#6e7681" stroke-width="1"></rect>
-        <text x="785" y="335" class="node-text" style="fill: #e6edf3;">Конфиги Личности (.json)</text>
-
-        <!-- G ["База данных"] -->
-        <rect x="660" y="410" width="250" height="50" rx="6" fill="#21262d" stroke="#6e7681" stroke-width="1"></rect>
-        <text x="785" y="435" class="node-text" style="fill: #e6edf3;">База данных (SQLite)</text>
+    <!-- LLM Generator -->
+    <g transform="translate(650, 100)">
+        <rect width="200" height="80" class="box"/>
+        <text x="100" y="25" text-anchor="middle" class="title">LLM-Генератор</text>
+        <text x="100" y="50" text-anchor="middle" class="text">Получение Report</text>
+        <text x="100" y="65" text-anchor="middle" class="text">Генерация ответа</text>
     </g>
 
-    <!-- ================= ТЕКСТОВЫЙ СЛОЙ (ПОВЕРХ ВСЕГО) ================= -->
-    <!-- Текст связей вынесен отдельно, чтобы не было блюра -->
-    <g>
-        <rect x="265" y="85" width="70" height="20" rx="4" fill="#0d1117" opacity="0.8"/> <!-- Подложка под текст -->
-        <text class="link-text" x="300" y="100" text-anchor="middle" dominant-baseline="central">Protobuf</text>
-
-        <rect x="630" y="85" width="70" height="20" rx="4" fill="#0d1117" opacity="0.8"/>
-        <text class="link-text" x="665" y="100" text-anchor="middle" dominant-baseline="central">Protobuf</text>
-        
-        <!-- Вертикальные подписи теперь горизонтальны и сбоку -->
-        <text class="link-text" x="490" y="195" text-anchor="start" dominant-baseline="central" fill="#388bfd">HTTP-запрос</text>
-        <text class="link-text" x="490" y="345" text-anchor="start" dominant-baseline="central" fill="#30a14e">Вызовы</text>
-        
-        <text class="link-text" x="620" y="320" text-anchor="end" dominant-baseline="central">Чтение</text>
-        <text class="link-text" x="650" y="455" text-anchor="end" dominant-baseline="central">Чтение/Запись</text>
+    <!-- User App -->
+    <g transform="translate(350, 80)">
+        <rect width="200" height="60" class="box"/>
+        <text x="100" y="25" text-anchor="middle" class="title">Ваше Приложение</text>
+        <text x="100" y="45" text-anchor="middle" class="text">(Оркестратор)</text>
     </g>
 
-    <!-- ================= АНИМАЦИОННЫЙ СЛОЙ ================= -->
-    <g filter="url(#glow)">
-        <circle r="4" fill="#388bfd">
-            <animateMotion dur="3s" repeatCount="indefinite" path="M 210,100 L 375,100" />
-        </circle>
-        <circle r="4" fill="#a371f7">
-            <animateMotion dur="3s" repeatCount="indefinite" begin="1.5s" path="M 575,100 L 740,100" />
-        </circle>
-        <circle r="5" fill="#30a14e">
-            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 475,130 L 475,260" />
-        </circle>
-        <circle r="5" fill="#30a14e">
-            <animateMotion dur="2s" repeatCount="indefinite" begin="0.5s" path="M 475,310 L 475,380" />
-        </circle>
-        <!-- Частицы к базам данных -->
-        <circle r="3" fill="#e3b341">
-            <animateMotion dur="4s" repeatCount="indefinite" path="M 550,405 L 620,405 L 620,335 L 660,335" />
-        </circle>
-        <circle r="3" fill="#e3b341">
-            <animateMotion dur="4s" repeatCount="indefinite" begin="2s" path="M 550,405 L 620,405 L 620,435 L 660,435" />
-        </circle>
-    </g>
+    <!-- Lines -->
+    <path d="M450,140 v 60" class="line"/> <!-- App -> Engine -->
+    <path d="M250,140 h 100" class="line"/> <!-- Parser -> App -->
+    <path d="M550,140 h 100" class="line"/> <!-- App -> Generator -->
+
+    <!-- Animation Dots -->
+    <!-- Parser -> App -> Engine -->
+    <circle class="flow-dot">
+        <animateMotion path="M150,140 h 200 v 100" dur="4s" begin="0s" repeatCount="indefinite" />
+    </circle>
+    <!-- Engine -> App -> Generator -->
+    <circle class="flow-dot">
+        <animateMotion path="M450,220 v -80 h 200" dur="4s" begin="2s" repeatCount="indefinite" />
+    </circle>
 </svg>
