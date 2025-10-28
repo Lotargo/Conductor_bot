@@ -35,7 +35,8 @@ def engine(config_path, db_session):
 
 def test_engine_initialization(engine: SentioEngine):
     """Проверяет, что движок корректно инициализируется."""
-    assert engine.state.primary_mood == "преобладает любопытство"
+    # Согласно новому emotions.json, "доверие" имеет самую высокую base_intensity (0.2)
+    assert engine.state.primary_mood == "преобладает доверие"
     assert engine.state.emotions["радость"] == pytest.approx(0.1)
     assert "Инициализация системы" in engine.state.cause
 
@@ -71,6 +72,6 @@ def test_emotion_decay(engine: SentioEngine):
     # Вызываем затухание напрямую
     engine._decay_emotions()
 
-    assert engine.state.emotions["доверие"] < 1.0
-    # Проверяем, что оно стремится к базовому значению (0.2), а не к нулю
-    assert engine.state.emotions["доверие"] > 0.2
+    # decay_rate = 0.99, base_intensity = 0.2
+    # new = 0.2 + (1.0 - 0.2) * 0.99 = 0.992
+    assert engine.state.emotions["доверие"] == pytest.approx(0.992)
