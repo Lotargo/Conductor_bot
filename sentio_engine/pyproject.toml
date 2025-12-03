@@ -17,7 +17,8 @@ dependencies = [
     "pydantic (>=2.12.3,<3.0.0)",
     "python-dotenv (>=1.1.1,<2.0.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
-    "redis (>=7.0.0,<8.0.0)"
+    "redis (>=7.0.0,<8.0.0)",
+    "motor (>=3.7.1,<4.0.0)"
 ]
 
 
@@ -39,5 +40,6 @@ dev = [
     "httpx (>=0.28.1,<0.29.0)",
     "pytest-asyncio (>=1.2.0,<2.0.0)",
     "fakeredis (>=2.32.0,<3.0.0)",
-    "pytest-docker (>=3.2.3,<4.0.0)"
+    "pytest-docker (>=3.2.3,<4.0.0)",
+    "mongomock-motor (>=0.0.36,<0.0.37) ; python_version >= \"3.11\" and python_version < \"4.0\""
 ]
