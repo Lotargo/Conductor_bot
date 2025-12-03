@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, Header, Body
 from pathlib import Path
 import hashlib
+import datetime
 from typing import Annotated, Optional
 
 from sentio_engine.core.engine import SentioEngine
@@ -117,7 +118,6 @@ async def get_engine_report(
     report = engine.get_report(emotional_state, last_update_time=last_update)
 
     # 3. Save State (because decay might have updated it)
-    import datetime
     new_timestamp = datetime.datetime.utcnow()
 
     await StateRepository.save_state(

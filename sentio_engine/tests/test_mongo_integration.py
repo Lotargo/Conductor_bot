@@ -1,32 +1,46 @@
 import pytest
 import asyncio
-from mongomock_motor import AsyncMongoMockClient
+from motor.motor_asyncio import AsyncIOMotorClient
 from sentio_engine.data.mongo import MongoManager
 from sentio_engine.data.repositories import ClientRepository, StateRepository
 from sentio_engine.schemas.sentio_pb2 import EmotionalState
 
-@pytest.fixture(scope="session")
-def mongo_client():
+@pytest.fixture(scope="function")
+async def mongo_client():
     """
-    Returns a MOCK motor client.
+    Returns a REAL motor client connected to the dockerized database.
     """
-    client = AsyncMongoMockClient()
+    # Connect to localhost since ports are mapped in docker-compose
+    client = AsyncIOMotorClient("mongodb://localhost:27017")
     yield client
     client.close()
 
 @pytest.fixture(autouse=True)
 async def clear_db(mongo_client):
     """Clears the test database before each test."""
+    # Use a specific test database
+    db_name = "sentio_db_test_real"
+    await mongo_client.drop_database(db_name)
+
     # Patch the manager to use test DB
     original_client = MongoManager.client
+    original_db_name = MongoManager.db_name
+
     MongoManager.client = mongo_client
+    MongoManager.db_name = db_name
+
     yield
-    # Cleanup (not strictly necessary with mock but good practice)
-    # await mongo_client.drop_database("sentio_db")
+
+    # Cleanup (drop db again to leave it clean)
+    await mongo_client.drop_database(db_name)
+
+    # Restore original state
     MongoManager.client = original_client
+    MongoManager.db_name = original_db_name
 
 @pytest.mark.asyncio
-async def test_client_registration():
+async def test_full_integration_flow():
+    # --- Part 1: Registration ---
     client_name = "TestClient"
     api_key = await ClientRepository.register_client(client_name)
     assert api_key is not None
@@ -37,9 +51,10 @@ async def test_client_registration():
     assert client_doc is not None
     assert client_doc["client_name"] == client_name
 
-@pytest.mark.asyncio
-async def test_state_isolation():
-    api_key = "test_api_key_123"
+    print("\n[OK] Client Registration verified.")
+
+    # --- Part 2: State Isolation ---
+    # api_key is reused from above
     session_1 = "session_A"
     session_2 = "session_B"
 
@@ -71,3 +86,5 @@ async def test_state_isolation():
 
     assert loaded_state_2.emotions["sadness"] == pytest.approx(0.9)
     assert "joy" not in loaded_state_2.emotions or loaded_state_2.emotions["joy"] == 0.0
+
+    print("[OK] State Isolation verified.")
