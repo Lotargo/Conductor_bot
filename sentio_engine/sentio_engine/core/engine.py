@@ -2,7 +2,7 @@ import json
 import datetime
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Callable, Dict
 
 from sentio_engine.schemas.sentio_pb2 import EmotionalState, Stimulus, Report
 
@@ -106,9 +106,6 @@ class SentioEngine:
                 state.emotions[emotion] += modified_intensity
                 state.emotions[emotion] = max(0.0, min(1.0, state.emotions[emotion]))
 
-                # TODO: Log to History (DB layer should handle this separately or we return a log object)
-                # For now, we rely on the state being updated.
-
         # 3. Apply mechanics
         self._apply_dominance(state)
         self._update_primary_mood(state)
@@ -172,26 +169,15 @@ class SentioEngine:
 
         self._apply_dominance(state)
 
-    def _evaluate_complex_states(self, state: EmotionalState, history_provider=None) -> List[str]:
-        """
-        Analyzes emotional history to identify complex feelings.
-        Note: logic requires history. If history_provider is None, returns empty.
-        history_provider should be a callable: (start_time, end_time) -> List[EmotionalHistoryEntry]
-        """
-        # Since we decoupled DB, we can't query history directly here easily without an interface.
-        # For this refactor, we will temporarily disable complex states or require a provider.
-        # Given the scope, I'll return empty list or implement a basic check based on current state if possible,
-        # but complex states definition relies on time window.
-
-        # Placeholder for now.
-        return []
-
-    def get_report(self, state: EmotionalState, last_update_time: datetime.datetime) -> Report:
-        """Generates a report from the given state."""
+    def get_report(self, state: EmotionalState, last_update_time: datetime.datetime, complex_states: Optional[List[str]] = None) -> Report:
+        """Generates a report from the given state. Optionally includes externally calculated complex states."""
         # Sync decay first to make sure report is up to date
         self._synchronize_decay(state, last_update_time)
 
         report = Report()
         report.emotional_state.CopyFrom(state)
-        # report.complex_states.extend(self._evaluate_complex_states(state))
+
+        if complex_states:
+             report.complex_states.extend(complex_states)
+
         return report

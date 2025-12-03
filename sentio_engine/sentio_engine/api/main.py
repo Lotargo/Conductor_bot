@@ -2,13 +2,14 @@ from fastapi import FastAPI, Request, Response, Depends, HTTPException, Header, 
 from pathlib import Path
 import hashlib
 import datetime
+import logging
 from typing import Annotated, Optional
 
 from sentio_engine.core.engine import SentioEngine
 from sentio_engine.schemas.sentio_pb2 import Stimulus, Report, HealthStatus, PersonalityProfile, PersonalityTrait, EmotionalState
 from contextlib import asynccontextmanager
 from sentio_engine.data.mongo import MongoManager
-from sentio_engine.data.repositories import ClientRepository, StateRepository
+from sentio_engine.data.repositories import ClientRepository, StateRepository, HistoryRepository
 from pydantic import BaseModel
 
 # --- Models ---
@@ -18,6 +19,8 @@ class RegisterClientRequest(BaseModel):
 class AgentText(BaseModel):
     text: str
     session_id: str
+
+logger = logging.getLogger(__name__)
 
 # --- Lifespan Manager ---
 @asynccontextmanager
@@ -46,6 +49,68 @@ async def verify_api_key(
     if not client:
         raise HTTPException(status_code=401, detail="Invalid API Key")
     return x_api_key
+
+# --- Helper Functions ---
+
+async def _check_and_update_complex_states(api_key: str, session_id: str) -> list[str]:
+    """
+    Checks for active complex states (feelings) based on history.
+    This is a simplified implementation. In a real scenario, we would iterate
+    over engine.feelings_definitions and run queries for each.
+    """
+    active_states = []
+
+    # Example: Check for "depression" (assuming definition exists)
+    # Definition: Sadness > 0.5 for a period (simplified here to average > 0.5 in last 14 days)
+    # We use a shorter window for testing/demo or load from config.
+
+    # Load feeling definitions from engine to be dynamic
+    if not hasattr(engine, 'feelings_definitions'):
+        return []
+
+    now = datetime.datetime.utcnow()
+
+    for feeling_name, definition in engine.feelings_definitions.items():
+         # Simplified logic: If "sadness" is a condition, check average sadness
+         # This is an adaptation of the SQL logic to Mongo aggregation
+         conditions = definition.get("conditions", [])
+         is_active = True
+
+         if not conditions:
+             is_active = False
+
+         for condition in conditions:
+             emotion = condition["emotion"]
+             threshold = condition["threshold"]
+             operator = condition["operator"]
+
+             # Check stats for the last 14 days (or defined duration)
+             duration_hours = definition.get("required_duration_hours", 24 * 14)
+             start_time = now - datetime.timedelta(hours=duration_hours)
+
+             stats = await HistoryRepository.get_stats_in_window(api_key, session_id, emotion, start_time)
+
+             if stats["count"] == 0:
+                 is_active = False
+                 break
+
+             # A very basic check: is the AVERAGE intensity matching the condition?
+             # The SQL logic was strict (NO violation). The Mongo logic here is "Average is matching".
+             # This is a heuristic change for performance in hybrid memory.
+             val = stats["avg"]
+
+             if operator == ">=" and val < threshold:
+                 is_active = False
+             elif operator == "<=" and val > threshold:
+                 is_active = False
+
+             if not is_active:
+                 break
+
+         if is_active:
+             active_states.append(feeling_name)
+
+    return active_states
 
 # --- Endpoints ---
 
@@ -88,7 +153,11 @@ async def apply_stimulus(
     # 2. Process
     new_timestamp = engine.process_stimulus(emotional_state, stimulus, last_update_time=last_update)
 
-    # 3. Save State
+    # 3. Log History (Hybrid Memory)
+    cause = emotional_state.cause
+    await HistoryRepository.log_event(api_key, x_session_id, emotional_state, cause)
+
+    # 4. Save State
     await StateRepository.save_state(
         api_key=api_key,
         session_id=x_session_id,
@@ -114,10 +183,17 @@ async def get_engine_report(
     else:
         emotional_state = engine.create_initial_state()
 
-    # 2. Generate Report (syncs decay)
-    report = engine.get_report(emotional_state, last_update_time=last_update)
+    # 2. Check Complex States (Hybrid Memory Analysis)
+    active_complex_states = await _check_and_update_complex_states(api_key, x_session_id)
 
-    # 3. Save State (because decay might have updated it)
+    # 3. Generate Report (syncs decay)
+    report = engine.get_report(
+        emotional_state,
+        last_update_time=last_update,
+        complex_states=active_complex_states
+    )
+
+    # 4. Save State (because decay might have updated it)
     new_timestamp = datetime.datetime.utcnow()
 
     await StateRepository.save_state(
@@ -178,6 +254,9 @@ async def process_agent_text(
                 emotional_state = engine.create_initial_state()
 
             new_timestamp = engine.process_stimulus(emotional_state, stimulus, last_update_time=last_update)
+
+            # Log History
+            await HistoryRepository.log_event(api_key, payload.session_id, emotional_state, "Agent Text Reaction")
 
             await StateRepository.save_state(
                 api_key=api_key,
