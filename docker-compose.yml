@@ -6,6 +6,13 @@ services:
     ports:
       - "6379:6379"
 
+  mongo:
+    image: "mongo:6.0"
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
   sentio-engine:
     build:
       context: ./sentio_engine
@@ -14,5 +21,10 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - MONGO_URL=mongodb://mongo:27017
     depends_on:
       - redis
+      - mongo
+
+volumes:
+  mongo_data:

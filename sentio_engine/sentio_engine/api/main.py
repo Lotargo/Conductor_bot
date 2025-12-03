@@ -1,85 +1,144 @@
-from fastapi import FastAPI, Request, Response, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, Header, Body
 from pathlib import Path
 import hashlib
+from typing import Annotated, Optional
 
 from sentio_engine.core.engine import SentioEngine
-from sentio_engine.schemas.sentio_pb2 import Stimulus, Report, HealthStatus, PersonalityProfile, PersonalityTrait
+from sentio_engine.schemas.sentio_pb2 import Stimulus, Report, HealthStatus, PersonalityProfile, PersonalityTrait, EmotionalState
 from contextlib import asynccontextmanager
-from sentio_engine.data.database import create_db_and_tables, get_db
-from sentio_engine.cache.redis_client import get_redis_client
+from sentio_engine.data.mongo import MongoManager
+from sentio_engine.data.repositories import ClientRepository, StateRepository
+from pydantic import BaseModel
+
+# --- Models ---
+class RegisterClientRequest(BaseModel):
+    client_name: str
+
+class AgentText(BaseModel):
+    text: str
+    session_id: str
 
 # --- Lifespan Manager ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Управляет жизненным циклом приложения."""
-    print("Запуск приложения...")
+    """Manages application lifecycle."""
+    print("App starting...")
+    # Trigger DB connection
+    MongoManager.get_client()
     yield
-    print("Приложение остановлено.")
+    print("App stopping...")
+    MongoManager.close()
 
-# --- Инициализация Приложения и Движка ---
+# --- App & Engine Init ---
 app = FastAPI(title="Sentio Engine API", lifespan=lifespan)
 
 config_path = Path(__file__).resolve().parent.parent.parent / "config"
+# Engine is now stateless singleton
 engine = SentioEngine(config_path=config_path)
 
-# --- API Эндпоинты ---
-@app.post("/stimulus", status_code=204, summary="Применить стимул к движку")
-async def apply_stimulus(request: Request, db: Session = Depends(get_db)):
+# --- Dependencies ---
+async def verify_api_key(
+    x_api_key: Annotated[str, Header()]
+) -> str:
+    """Verifies API key and returns it if valid."""
+    client = await ClientRepository.validate_api_key(x_api_key)
+    if not client:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+    return x_api_key
+
+# --- Endpoints ---
+
+@app.post("/register_client", summary="Register a new client adapter")
+async def register_client(request: RegisterClientRequest):
+    """
+    Registers a new client application/adapter and returns an API Key.
+    """
+    api_key = await ClientRepository.register_client(request.client_name)
+    return {"api_key": api_key, "client_name": request.client_name}
+
+@app.post("/stimulus", status_code=204, summary="Apply stimulus to engine")
+async def apply_stimulus(
+    request: Request,
+    x_session_id: Annotated[str, Header()],
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Applies a stimulus. Requires X-Session-ID header and X-Api-Key.
+    """
     body = await request.body()
     stimulus = Stimulus()
     try:
         stimulus.ParseFromString(body)
     except Exception:
-        raise HTTPException(status_code=400, detail="Ошибка парсинга Protobuf-сообщения.")
-    engine.process_stimulus(stimulus, db=db)
+        raise HTTPException(status_code=400, detail="Protobuf parsing error.")
+
+    # 1. Load State
+    state_doc = await StateRepository.load_state(api_key, x_session_id)
+
+    emotional_state = EmotionalState()
+    last_update = None
+    if state_doc and state_doc.get("state_blob"):
+        emotional_state.ParseFromString(state_doc["state_blob"])
+        last_update = state_doc.get("last_update")
+    else:
+        # Create new default state
+        emotional_state = engine.create_initial_state()
+
+    # 2. Process
+    new_timestamp = engine.process_stimulus(emotional_state, stimulus, last_update_time=last_update)
+
+    # 3. Save State
+    await StateRepository.save_state(
+        api_key=api_key,
+        session_id=x_session_id,
+        state_data=emotional_state.SerializeToString(),
+        last_update=new_timestamp
+    )
+
     return Response(status_code=204)
 
-@app.post("/process_and_report", response_class=Response, summary="Обработать стимул и вернуть отчет с кэшированием")
-async def process_and_report(request: Request, db: Session = Depends(get_db)):
-    body = await request.body()
-    stimulus = Stimulus()
-    try:
-        stimulus.ParseFromString(body)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Ошибка парсинга Protobuf-сообщения.")
+@app.get("/report", response_class=Response, summary="Get current state report")
+async def get_engine_report(
+    x_session_id: Annotated[str, Header()],
+    api_key: str = Depends(verify_api_key)
+):
+    # 1. Load State
+    state_doc = await StateRepository.load_state(api_key, x_session_id)
 
-    redis_client = get_redis_client()
-    stimulus_hash = hashlib.sha256(body).hexdigest()
-    cached_report_str = redis_client.get(stimulus_hash)
+    emotional_state = EmotionalState()
+    last_update = None
+    if state_doc and state_doc.get("state_blob"):
+        emotional_state.ParseFromString(state_doc["state_blob"])
+        last_update = state_doc.get("last_update")
+    else:
+        emotional_state = engine.create_initial_state()
 
-    if cached_report_str:
-        return Response(content=cached_report_str, media_type="application/protobuf")
+    # 2. Generate Report (syncs decay)
+    report = engine.get_report(emotional_state, last_update_time=last_update)
 
-    engine.process_stimulus(stimulus, db=db)
-    report = engine.get_report(db=db)
+    # 3. Save State (because decay might have updated it)
+    import datetime
+    new_timestamp = datetime.datetime.utcnow()
+
+    await StateRepository.save_state(
+        api_key=api_key,
+        session_id=x_session_id,
+        state_data=emotional_state.SerializeToString(),
+        last_update=new_timestamp
+    )
+
     serialized_report = report.SerializeToString()
-
-    redis_client.setex(stimulus_hash, 3600, serialized_report)
-
     return Response(content=serialized_report, media_type="application/protobuf")
 
-@app.get("/report", response_class=Response, summary="Получить отчет о состоянии")
-def get_engine_report(db: Session = Depends(get_db)):
-    report = engine.get_report(db=db)
-    serialized_report = report.SerializeToString()
-    return Response(content=serialized_report, media_type="application/protobuf")
 
-
-# --- Эндпоинт для обработки текста от Агента ---
+# --- Text Processing ---
 import re
 import json
-from pydantic import BaseModel
-
-class AgentText(BaseModel):
-    text: str
 
 def _parse_emotions_from_text(text: str) -> dict | None:
-    """Извлекает JSON-объект с эмоциями из специального тега в тексте."""
     match = re.search(r"\[SENTIO_EMO_STATE\](.*?)\[/SENTIO_EMO_STATE\]", text, re.DOTALL)
     if not match:
         return None
-
     json_str = match.group(1).strip()
     try:
         emotions = json.loads(json_str)
@@ -89,11 +148,14 @@ def _parse_emotions_from_text(text: str) -> dict | None:
         return None
     return None
 
-@app.post("/process_agent_text", status_code=204, summary="Обработать текст от агента и извлечь эмоции")
-async def process_agent_text(payload: AgentText, db: Session = Depends(get_db)):
+@app.post("/process_agent_text", status_code=204, summary="Extract emotions from agent text")
+async def process_agent_text(
+    payload: AgentText,
+    api_key: str = Depends(verify_api_key)
+):
     """
-    Этот эндпоинт ищет в тексте специальный блок [SENTIO_EMO_STATE]...[/SENTIO_EMO_STATE]
-    и использует найденный в нем JSON для обновления эмоционального состояния.
+    Parses [SENTIO_EMO_STATE] tags from text and updates state.
+    Payload must include 'session_id'.
     """
     emotions_to_process = _parse_emotions_from_text(payload.text)
 
@@ -104,19 +166,39 @@ async def process_agent_text(payload: AgentText, db: Session = Depends(get_db)):
                 stimulus.emotions[emotion] = float(intensity)
 
         if stimulus.emotions:
-            engine.process_stimulus(stimulus, db=db)
+            # Same logic as apply_stimulus
+            state_doc = await StateRepository.load_state(api_key, payload.session_id)
+
+            emotional_state = EmotionalState()
+            last_update = None
+            if state_doc and state_doc.get("state_blob"):
+                emotional_state.ParseFromString(state_doc["state_blob"])
+                last_update = state_doc.get("last_update")
+            else:
+                emotional_state = engine.create_initial_state()
+
+            new_timestamp = engine.process_stimulus(emotional_state, stimulus, last_update_time=last_update)
+
+            await StateRepository.save_state(
+                api_key=api_key,
+                session_id=payload.session_id,
+                state_data=emotional_state.SerializeToString(),
+                last_update=new_timestamp
+            )
 
     return Response(status_code=204)
 
-# --- Служебные Эндпоинты ---
-@app.get("/health", response_class=Response, summary="Проверить работоспособность сервиса")
+# --- Service Endpoints ---
+@app.get("/health", response_class=Response)
 def get_health_status():
     health_status = HealthStatus(status="OK")
-    serialized_status = health_status.SerializeToString()
-    return Response(content=serialized_status, media_type="application/protobuf")
+    return Response(content=health_status.SerializeToString(), media_type="application/protobuf")
 
-# --- Эндпоинты Управления Личностью ---
-@app.get("/personality", response_class=Response, summary="Получить текущий профиль личности")
+# --- Personality Management (Global/Admin?) ---
+# Note: Currently personality is loaded from files globally.
+# Modifying it at runtime affects ALL clients if we don't move it to DB.
+# For now, leaving as is but acknowledging it changes the 'template'.
+@app.get("/personality", response_class=Response)
 def get_personality_profile():
     profile = PersonalityProfile()
     for trait_name, trait_data in engine.belief_system.items():
@@ -125,26 +207,8 @@ def get_personality_profile():
             description=trait_data["description"]
         )
         profile.traits[trait_name].CopyFrom(trait)
+    return Response(content=profile.SerializeToString(), media_type="application/protobuf")
 
-    serialized_profile = profile.SerializeToString()
-    return Response(content=serialized_profile, media_type="application/protobuf")
-
-@app.post("/personality", status_code=204, summary="Обновить профиль личности")
-async def update_personality_profile(request: Request):
-    body = await request.body()
-    profile = PersonalityProfile()
-    try:
-        profile.ParseFromString(body)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Ошибка парсинга Protobuf-сообщения.")
-
-    for trait_name, trait_data in profile.traits.items():
-        if trait_name in engine.belief_system:
-            engine.belief_system[trait_name]["value"] = trait_data.value
-
-    return Response(status_code=204)
-
-# --- Запуск Сервера (для локальной разработки) ---
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
