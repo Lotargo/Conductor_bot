@@ -10,6 +10,7 @@ from sentio_engine.schemas.sentio_pb2 import Stimulus, Report, HealthStatus, Per
 from contextlib import asynccontextmanager
 from sentio_engine.data.mongo import MongoManager
 from sentio_engine.data.repositories import ClientRepository, StateRepository, HistoryRepository
+from sentio_engine.api import proxy # Import the new proxy module
 from pydantic import BaseModel
 
 # --- Models ---
@@ -35,6 +36,9 @@ async def lifespan(app: FastAPI):
 
 # --- App & Engine Init ---
 app = FastAPI(title="Sentio Engine API", lifespan=lifespan)
+
+# Include the Proxy Router
+app.include_router(proxy.router)
 
 config_path = Path(__file__).resolve().parent.parent.parent / "config"
 # Engine is now stateless singleton

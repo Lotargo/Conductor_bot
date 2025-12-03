@@ -1,10 +1,11 @@
 import uuid
 import secrets
 from typing import Optional, List, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from sentio_engine.data.mongo import MongoManager
 from sentio_engine.schemas.sentio_pb2 import EmotionalState
+import pymongo
 
 class ClientRepository:
     """
@@ -88,14 +89,8 @@ class HistoryRepository:
 
     @classmethod
     async def log_event(cls, api_key: str, session_id: str, state: EmotionalState, cause: str):
-        """
-        Logs the current emotional snapshot to history.
-        """
         collection = await cls.get_collection()
-
-        # Convert map to dict for Mongo
         emotions_dict = dict(state.emotions)
-
         doc = {
             "api_key": api_key,
             "session_id": session_id,
@@ -107,12 +102,7 @@ class HistoryRepository:
 
     @classmethod
     async def get_stats_in_window(cls, api_key: str, session_id: str, emotion: str, start_time: datetime) -> Dict[str, float]:
-        """
-        Calculates stats for a specific emotion in a time window.
-        Returns: {"avg": float, "min": float, "max": float, "count": int}
-        """
         collection = await cls.get_collection()
-
         pipeline = [
             {
                 "$match": {
@@ -132,11 +122,54 @@ class HistoryRepository:
                 }
             }
         ]
-
         cursor = collection.aggregate(pipeline)
         result = await cursor.to_list(length=1)
-
         if not result:
             return {"avg": 0.0, "min": 0.0, "max": 0.0, "count": 0}
-
         return result[0]
+
+class MessageBufferRepository:
+    """
+    Short-term memory buffer for chat messages (TTL 48h).
+    Collection: `message_buffer`
+    """
+    COLLECTION_NAME = "message_buffer"
+
+    @classmethod
+    async def get_collection(cls):
+        db = MongoManager.get_db()
+        # Ensure TTL index on startup (safe to call repeatedly)
+        # Note: In production, this should ideally be in a migration script
+        try:
+             await db[cls.COLLECTION_NAME].create_index(
+                 [("created_at", pymongo.ASCENDING)],
+                 expireAfterSeconds=48 * 3600
+             )
+        except Exception:
+            pass # Index probably already exists
+
+        return db[cls.COLLECTION_NAME]
+
+    @classmethod
+    async def add_message(cls, api_key: str, session_id: str, role: str, content: str):
+        collection = await cls.get_collection()
+        doc = {
+            "api_key": api_key,
+            "session_id": session_id,
+            "role": role,
+            "content": content,
+            "created_at": datetime.utcnow()
+        }
+        await collection.insert_one(doc)
+
+    @classmethod
+    async def get_recent_messages(cls, api_key: str, session_id: str, limit: int = 10) -> List[Dict]:
+        """Fetches recent messages sorted by time (oldest first)."""
+        collection = await cls.get_collection()
+        cursor = collection.find(
+            {"api_key": api_key, "session_id": session_id}
+        ).sort("created_at", pymongo.DESCENDING).limit(limit)
+
+        messages = await cursor.to_list(length=limit)
+        # Reverse to return chronological order
+        return sorted(messages, key=lambda x: x["created_at"])

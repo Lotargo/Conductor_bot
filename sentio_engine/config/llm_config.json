@@ -1,0 +1,7 @@
+{
+  "openai_base_url": "https://api.openai.com/v1",
+  "openai_api_key": "YOUR_API_KEY_HERE",
+  "selected_model": "gpt-3.5-turbo",
+  "subconscious_model": "gpt-3.5-turbo",
+  "system_prompt_template": "[SENTIO_INJECTION] Current User State: {user_state}. Your State: {ai_state}. Relationships: {relationships}. Instructions: {instructions}"
+}
