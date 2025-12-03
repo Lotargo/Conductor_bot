@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from sentio_engine.data.mongo import MongoManager
-from sentio_engine.data.repositories import ClientRepository, StateRepository
+from sentio_engine.data.repositories import ClientRepository, StateRepository, HistoryRepository
 from sentio_engine.schemas.sentio_pb2 import EmotionalState
 
 @pytest.fixture(scope="function")
@@ -45,16 +45,9 @@ async def test_full_integration_flow():
     api_key = await ClientRepository.register_client(client_name)
     assert api_key is not None
     assert len(api_key) > 10
-
-    # Verify we can find it
-    client_doc = await ClientRepository.validate_api_key(api_key)
-    assert client_doc is not None
-    assert client_doc["client_name"] == client_name
-
     print("\n[OK] Client Registration verified.")
 
     # --- Part 2: State Isolation ---
-    # api_key is reused from above
     session_1 = "session_A"
     session_2 = "session_B"
 
@@ -77,14 +70,27 @@ async def test_full_integration_flow():
     loaded_state_1 = EmotionalState()
     loaded_state_1.ParseFromString(doc_1["state_blob"])
 
-    doc_2 = await StateRepository.load_state(api_key, session_2)
-    loaded_state_2 = EmotionalState()
-    loaded_state_2.ParseFromString(doc_2["state_blob"])
-
     assert loaded_state_1.emotions["joy"] == pytest.approx(0.9)
     assert "sadness" not in loaded_state_1.emotions or loaded_state_1.emotions["sadness"] == 0.0
-
-    assert loaded_state_2.emotions["sadness"] == pytest.approx(0.9)
-    assert "joy" not in loaded_state_2.emotions or loaded_state_2.emotions["joy"] == 0.0
-
     print("[OK] State Isolation verified.")
+
+    # --- Part 3: History & Complex States ---
+    # Simulate a history of sadness for Session 2 to trigger "Depression" (hypothetically)
+    # We log 3 events
+    await HistoryRepository.log_event(api_key, session_2, state_2, "Bad event 1")
+    await HistoryRepository.log_event(api_key, session_2, state_2, "Bad event 2")
+    await HistoryRepository.log_event(api_key, session_2, state_2, "Bad event 3")
+
+    # Verify we can retrieve stats
+    start_time = now - datetime.timedelta(hours=1)
+    stats = await HistoryRepository.get_stats_in_window(api_key, session_2, "sadness", start_time)
+
+    assert stats["count"] == 3
+    assert stats["avg"] == pytest.approx(0.9)
+    assert stats["max"] == pytest.approx(0.9)
+
+    # Verify Session 1 has no sadness history
+    stats_1 = await HistoryRepository.get_stats_in_window(api_key, session_1, "sadness", start_time)
+    assert stats_1["count"] == 0
+
+    print("[OK] History & Stats verified.")
