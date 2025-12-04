@@ -40,10 +40,9 @@ While many AI systems can process language, few can grasp its emotional context.
 - **Stateful Emotional Core:** Maintains an in-memory emotional state that reacts to stimuli and decays naturally over time.
 - **Protobuf API:** Uses a high-performance, language-agnostic Protocol Buffers API for communication (`POST /stimulus`, `GET /report`).
 - **Configurable Personality:** Define the AI's emotional palette, baseline moods, and decay rates in simple `.json` files.
-- **Long-Term Memory:** Logs significant emotional events to a SQLite database, creating a history of the AI's "life experiences."
-- **Built-in Redis Caching:** Uses Redis to cache responses for recurring stimuli, significantly improving performance.
-- **Dockerized & Ready to Deploy:** Comes with a `docker-compose.yml` file to instantly launch the application and its Redis cache.
-- **Modern Python Stack:** Built with Poetry, FastAPI, and SQLAlchemy, following modern development best practices.
+- **Long-Term Memory:** Logs significant emotional events to a MongoDB database, creating a history of the AI's "life experiences."
+- **Dockerized & Ready to Deploy:** Comes with a `docker-compose.yml` file to instantly launch the application and its dependencies (MongoDB).
+- **Modern Python Stack:** Built with Poetry, FastAPI, and Motor, following modern development best practices.
 
 ## Architecture
 
@@ -87,7 +86,7 @@ A game character's disposition towards the player can evolve based on in-game ev
     ```bash
     docker compose up --build -d
     ```
-    This command will start both the Sentio Engine application and the Redis cache.
+    This command will start both the Sentio Engine application and the MongoDB database.
 
 ### For Local Development
 1.  **Install Poetry.** (See [official documentation](https://python-poetry.org/docs/#installation)).
@@ -137,6 +136,8 @@ We are actively working to enhance the Sentio Engine. Key features on our roadma
 - [x] ~~**Dominance Mechanism:** Opposing emotions (per Plutchik's model) now suppress each other.~~ (Implemented)
 - [x] ~~**Complex States Engine:** The system can now identify long-term feelings (e.g., "depressive state") by analyzing history.~~ (Implemented)
 - [x] ~~**Implement `BeliefSystem.json`:** Added a belief system based on the "Big Five" personality traits to modulate emotional responses.~~ (Implemented)
+- [x] ~~**Multi-Tenancy:** Stateless architecture with MongoDB for handling multiple clients and sessions.~~ (Implemented)
+- [x] ~~**Proxy Mode:** OpenAI-compatible proxy with "Subconscious" emotional injection.~~ (Implemented)
 - [ ] **Implement `drives.json`:** Fully integrate the core drives system to influence emotional processing.
 - [ ] **Admin Dashboard:** A simple web interface to visualize the engine's current emotional state in real-time.
 
