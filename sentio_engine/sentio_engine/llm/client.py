@@ -3,6 +3,7 @@ import json
 import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Any
+from sentio_engine.personas.manager import PersonaManager
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ class LLMGatewayClient:
         self.config_dir = config_dir
         self.config_path = config_dir / "llm_config.json"
         self._load_config()
+        self.persona_manager = PersonaManager(config_dir)
 
     def _load_config(self):
         try:
@@ -94,6 +96,7 @@ class LLMGatewayClient:
         """
         Acts as the 'Gatekeeper' and 'Synthesizer'.
         Analyzes the input + history + current state to produce updated emotions and response instructions.
+        Uses Dynamic Persona Manifest.
         """
         url = f"{self.base_url}/chat/completions"
         headers = {
@@ -101,25 +104,18 @@ class LLMGatewayClient:
             "Content-Type": "application/json"
         }
 
-        # Construct the "Subconscious" Prompt
-        # Simplified history for prompt context
-        history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_history[-10:]])
+        # 1. Build Prompt using Persona Manager
+        template, dynamic_behavior = self.persona_manager.build_system_prompt(current_state)
 
-        system_prompt = (
-            "You are the Sentio Engine, the subconscious emotional core of an AI.\n"
-            "Your task is to analyze the user's input and the conversation history to update the AI's emotional state "
-            "and provide a hidden instruction for the AI's persona.\n"
-            "\n"
-            "Input Data:\n"
-            f"1. Current Emotional State: {json.dumps(current_state, indent=2)}\n"
-            f"2. Recent Conversation:\n{history_text}\n"
-            f"3. User's New Message: \"{user_input}\"\n"
-            "\n"
-            "Output Requirement:\n"
-            "Return a valid JSON object with TWO keys:\n"
-            "- 'emotions': A dictionary of emotion updates (e.g., {'joy': 0.1, 'sadness': 0.5}). Only include changes.\n"
-            "- 'instruction': A clear, concise instruction for the AI Agent on how to reply, reflecting the new emotional context and empathy.\n"
-            "DO NOT output markdown formatting, just raw JSON."
+        # 2. Format Template
+        history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_history[-10:]])
+        current_state_json = json.dumps(current_state, indent=2)
+
+        system_prompt = template.format(
+            current_state_json=current_state_json,
+            history_text=history_text,
+            user_input=user_input,
+            dynamic_behavior=dynamic_behavior
         )
 
         payload = {
@@ -127,7 +123,7 @@ class LLMGatewayClient:
             "messages": [{"role": "system", "content": system_prompt}],
             "temperature": 0.7,
             "stream": False,
-            "response_format": {"type": "json_object"} # Use JSON mode if supported by gateway
+            "response_format": {"type": "json_object"}
         }
 
         try:
@@ -140,5 +136,4 @@ class LLMGatewayClient:
                 return json.loads(content)
         except Exception as e:
             logger.error(f"Error in subconscious processing: {e}")
-            # Fallback
             return {"emotions": {}, "instruction": "Respond naturally."}
